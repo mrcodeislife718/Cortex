@@ -8,6 +8,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         node: [22, 24]
     steps:
@@ -16,3 +17,33 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: npm test
+
+  ecosystem-processes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: cortex }
+      - uses: actions/checkout@v4
+        with: { repository: mrcodeislife718/Scout, path: scout }
+      - uses: actions/checkout@v4
+        with: { repository: mrcodeislife718/Nova, path: nova }
+      - uses: actions/checkout@v4
+        with: { repository: mrcodeislife718/Cannon, path: cannon }
+      - uses: actions/checkout@v4
+        with: { repository: mrcodeislife718/Cannon-Plus, path: cannon-plus }
+      - uses: actions/checkout@v4
+        with: { repository: mrcodeislife718/Velocity, path: velocity }
+      - uses: actions/checkout@v4
+        with: { repository: mrcodeislife718/Chronos, path: chronos }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - name: Prove real LSP, Cannon debug, Git, terminal, memory, Velocity and Chronos controls
+        working-directory: cortex
+        env:
+          SCOUT_REPO: ${{ github.workspace }}/scout
+          NOVA_REPO: ${{ github.workspace }}/nova
+          CANNON_REPO: ${{ github.workspace }}/cannon
+          CANNON_PLUS_REPO: ${{ github.workspace }}/cannon-plus
+          VELOCITY_REPO: ${{ github.workspace }}/velocity
+          CHRONOS_REPO: ${{ github.workspace }}/chronos
+        run: node --test test/ecosystem-process.test.mjs
