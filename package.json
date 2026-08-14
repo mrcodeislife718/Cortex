@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "description": "Cortex first-party IDE platform for Scout, Cannon, Cannon+, and the Cannon ecosystem.",
   "type": "module",
-  "exports": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./process": "./src/process-integration.js"
+  },
   "scripts": { "test": "node --test" },
   "engines": { "node": ">=20" },
   "license": "MIT"
