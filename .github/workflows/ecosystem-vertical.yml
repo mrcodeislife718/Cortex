@@ -1,0 +1,79 @@
+name: Ecosystem Vertical Proof
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  vertical:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Cortex
+        uses: actions/checkout@v4
+        with:
+          path: Cortex
+      - name: Checkout Scout
+        uses: actions/checkout@v4
+        with:
+          repository: mrcodeislife718/Scout
+          path: Scout
+      - name: Checkout Cannon
+        uses: actions/checkout@v4
+        with:
+          repository: mrcodeislife718/Cannon
+          path: Cannon
+      - name: Checkout Cannon+
+        uses: actions/checkout@v4
+        with:
+          repository: mrcodeislife718/Cannon-Plus
+          path: Cannon-Plus
+      - name: Checkout Nova
+        uses: actions/checkout@v4
+        with:
+          repository: mrcodeislife718/Nova
+          path: Nova
+      - name: Checkout Parallel
+        uses: actions/checkout@v4
+        with:
+          repository: mrcodeislife718/Parallel
+          path: Parallel
+      - name: Checkout Cadence
+        uses: actions/checkout@v4
+        with:
+          repository: mrcodeislife718/Cadence-
+          path: Cadence
+      - name: Checkout Sprout
+        uses: actions/checkout@v4
+        with:
+          repository: mrcodeislife718/Sprout
+          path: Sprout
+      - name: Checkout Syncio
+        uses: actions/checkout@v4
+        with:
+          repository: mrcodeislife718/Syncio
+          path: Syncio
+      - name: Checkout Plasma
+        uses: actions/checkout@v4
+        with:
+          repository: mrcodeislife718/Plasma
+          path: Plasma
+      - name: Checkout Velocity
+        uses: actions/checkout@v4
+        with:
+          repository: mrcodeislife718/Velocity
+          path: Velocity
+      - name: Checkout Chronos
+        uses: actions/checkout@v4
+        with:
+          repository: mrcodeislife718/Chronos
+          path: Chronos
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify native and foreign toolchains
+        run: |
+          cc --version
+          python3 --version
+      - name: Execute Scout-to-Cortex vertical program
+        run: node Cortex/test/vertical-ecosystem.mjs
