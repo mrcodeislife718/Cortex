@@ -1,0 +1,20 @@
+{
+  "name": "@cortex/desktop",
+  "private": true,
+  "version": "0.3.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "tauri": "tauri",
+    "check": "vite build"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.11.1",
+    "monaco-editor": "0.56.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.11.4",
+    "vite": "8.2.2"
+  }
+}
