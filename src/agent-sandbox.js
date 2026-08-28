@@ -20,7 +20,7 @@ export class ContainerAgentSandbox {
     const mount = `type=bind,src=${root},dst=/workspace${writableWorkspace ? '' : ',readonly'}`;
     const runtimeArgs = [
       'run', '--rm', '--init',
-      '--security-opt', 'no-new-privileges',
+      '--security-opt', 'no-new-privileges=true',
       '--cap-drop', 'ALL',
       '--pids-limit', String(pids),
       '--memory', `${memoryMb}m`,
