@@ -1,0 +1,16 @@
+name: Agent Sandbox Qualification
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  container-sandbox:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: docker pull node:24-alpine
+      - run: node --test test/agent-sandbox.integration.test.js
