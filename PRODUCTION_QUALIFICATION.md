@@ -8,6 +8,8 @@ The current repository began as a compact JavaScript architectural prototype. Ex
 
 The system-aware foundation adds a Cortex System Graph, deny-by-default capability security, prompt/secret boundaries, model routing/failover, engineering task graphs, agent evidence ledger, qualification gates, integrity-checked atomic persistence, project memory, recovery journals, premium entitlements/usage metering, and structured metrics/tracing/logging.
 
+The current closure tranche also implements automatic repository-to-System-Graph ingestion for JavaScript/TypeScript-family workspaces. It walks real workspace files, excludes build/vendor directories, fingerprints file content, records package metadata and dependency declarations, extracts ESM/CommonJS/dynamic module references, resolves internal imports, and attaches provenance to derived graph facts.
+
 ## Closure audit
 
 | Severity | Area | Status | Finding / gate |
@@ -19,7 +21,7 @@ The system-aware foundation adds a Cortex System Graph, deny-by-default capabili
 | CRITICAL | Agent sandbox | UNVERIFIED | Capability policy exists; OS/container sandbox enforcement is not yet integrated. |
 | CRITICAL | Prompt injection | PARTIAL | Repository content is classified as data and suspicious patterns can be identified; adversarial end-to-end agent tests remain required. |
 | CRITICAL | Durable state | PARTIAL | Integrity-checked atomic local state exists; database-backed team/cloud state, migrations, backup/restore and concurrency controls remain. |
-| CRITICAL | System Graph | PARTIAL | Cross-layer graph primitive exists; automatic ingestion from languages, runtime, Git, tests, infra and deployments remains. |
+| CRITICAL | System Graph | PARTIAL | Automatic source/package/import ingestion is implemented and tested. Language-semantic, runtime, Git-history, test, infra and deployment ingestion still remain before production qualification. |
 | HIGH | Model Fabric | PARTIAL | Provider abstraction and failover exist; production adapters, timeouts, rate limits, streaming, cost budgets and malformed-response contracts remain. |
 | HIGH | Observability | PARTIAL | Metrics, traces and redacted structured logging exist; exporters, dashboards, crash reporting and SLOs remain. |
 | HIGH | Recovery | PARTIAL | Recovery journal exists; unsaved-buffer/session restoration and crash/fault tests remain. |
@@ -28,13 +30,13 @@ The system-aware foundation adds a Cortex System Graph, deny-by-default capabili
 | HIGH | Remote execution | UNVERIFIED | SSH/container/VM/cloud workspace implementation remains. |
 | MEDIUM | Cost controls | PARTIAL | Usage metering exists; provider budgets, caching and account quotas remain. |
 | MEDIUM | Privacy | PARTIAL | Secret boundary and logging redaction exist; data export/deletion/retention and hosted-processing controls remain. |
-| MEDIUM | Documentation | PARTIAL | Authoritative architecture and this ledger exist; user/admin/API/runbook docs remain. |
+| MEDIUM | Documentation | PARTIAL | README, authoritative architecture and qualification ledger exist; user/admin/API/runbook docs remain. |
 
-## Executable evidence in this tranche
+## Executable evidence
 
-`npm run check` performs JavaScript syntax validation plus the complete Node test suite.
+`npm run check` performs JavaScript syntax validation plus the deterministic local Node test suite.
 
-The new platform tests verify:
+Platform evidence verifies:
 
 - cross-layer graph traversal and snapshot restore;
 - capability denial and privilege-escalation denial;
@@ -45,9 +47,12 @@ The new platform tests verify:
 - agent event/evidence ledger behavior;
 - atomic project-memory persistence and recovery checkpoints;
 - absence of a free production plan and premium entitlement enforcement;
-- metrics, tracing and sensitive-field redaction.
+- metrics, tracing and sensitive-field redaction;
+- real temporary-workspace ingestion of files, hashes, package declarations, internal imports, external dependencies and provenance;
+- exclusion of `node_modules` from graph ingestion;
+- ESM, re-export, dynamic-import and CommonJS module-specifier extraction.
 
-Existing integration tests continue to exercise real ecosystem process boundaries in CI.
+Existing integration workflows continue to exercise real ecosystem process boundaries against first-party repositories rather than replacing those contracts with mocks.
 
 ## Independent qualification state
 
@@ -55,7 +60,7 @@ Installation/dependency integrity: PARTIAL — dependency-free Node package inst
 
 Syntax checking: PASS when `npm run check:syntax` succeeds in CI.
 
-Unit/integration tests: PASS only when `npm test` and ecosystem-process CI jobs succeed on the candidate commit.
+Unit/integration tests: PASS only when `npm test` and the dedicated ecosystem proof workflows succeed on the candidate commit.
 
 Authentication, billing provider, hosted persistence, migrations, backup/restore, desktop E2E, load, security sandbox, deployment packages, updater and rollback: UNVERIFIED.
 
