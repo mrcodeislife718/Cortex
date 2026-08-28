@@ -8,6 +8,7 @@
     "./platform": "./src/platform.js",
     "./process": "./src/process-integration.js",
     "./system-graph": "./src/system-graph.js",
+    "./system-ingestion": "./src/system-ingestion.js",
     "./security": "./src/security-kernel.js",
     "./intelligence": "./src/intelligence-fabric.js",
     "./persistence": "./src/persistence.js",
@@ -15,9 +16,9 @@
     "./observability": "./src/observability.js"
   },
   "scripts": {
-    "test": "node --test test/cortex.test.js test/platform-foundation.test.js",
+    "test": "node --test test/cortex.test.js test/platform-foundation.test.js test/system-ingestion.test.js",
     "test:ecosystem": "node --test test/ecosystem-process.test.mjs",
-    "check:syntax": "node --check src/index.js && node --check src/process-integration.js && node --check src/system-graph.js && node --check src/security-kernel.js && node --check src/intelligence-fabric.js && node --check src/persistence.js && node --check src/commercialization.js && node --check src/observability.js && node --check src/platform.js",
+    "check:syntax": "node --check src/index.js && node --check src/process-integration.js && node --check src/system-graph.js && node --check src/system-ingestion.js && node --check src/security-kernel.js && node --check src/intelligence-fabric.js && node --check src/persistence.js && node --check src/commercialization.js && node --check src/observability.js && node --check src/platform.js",
     "check": "npm run check:syntax && npm test"
   },
   "engines": { "node": ">=20" },
