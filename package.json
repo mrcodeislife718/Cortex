@@ -1,13 +1,24 @@
 {
   "name": "@cannon/cortex",
-  "version": "0.1.0",
-  "description": "Cortex first-party IDE platform for Scout, Cannon, Cannon+, and the Cannon ecosystem.",
+  "version": "0.2.0",
+  "description": "Cortex AI-native systems-aware software engineering environment.",
   "type": "module",
   "exports": {
     ".": "./src/index.js",
-    "./process": "./src/process-integration.js"
+    "./platform": "./src/platform.js",
+    "./process": "./src/process-integration.js",
+    "./system-graph": "./src/system-graph.js",
+    "./security": "./src/security-kernel.js",
+    "./intelligence": "./src/intelligence-fabric.js",
+    "./persistence": "./src/persistence.js",
+    "./commercialization": "./src/commercialization.js",
+    "./observability": "./src/observability.js"
   },
-  "scripts": { "test": "node --test" },
+  "scripts": {
+    "test": "node --test",
+    "check:syntax": "node --check src/index.js && node --check src/process-integration.js && node --check src/system-graph.js && node --check src/security-kernel.js && node --check src/intelligence-fabric.js && node --check src/persistence.js && node --check src/commercialization.js && node --check src/observability.js && node --check src/platform.js",
+    "check": "npm run check:syntax && npm test"
+  },
   "engines": { "node": ">=20" },
   "license": "MIT"
 }
