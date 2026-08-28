@@ -78,3 +78,48 @@ test('repeated extension activation failures quarantine the extension', async ()
   assert.equal(platform.health('bad.extension').status, 'quarantined');
   await assert.rejects(fail, /quarantined/);
 });
+
+test('native extensions cannot silently become permanent startup dead weight', () => {
+  const platform = new ExtensionPlatform();
+  assert.throws(() => platform.install({
+    id: 'always.on', version: '1.0.0', runtime: ExtensionRuntime.UI,
+    activationEvents: ['*'], capabilities: [],
+  }), /wildcard startup activation requires explicit justification/);
+
+  const installed = platform.install({
+    id: 'justified.startup', version: '1.0.0', runtime: ExtensionRuntime.UI,
+    activationEvents: ['*'], startupJustification: 'renders required workspace status', capabilities: [],
+  });
+  assert.equal(installed.manifest.startupJustification, 'renders required workspace status');
+});
+
+test('extension activation budgets stop slow extensions from silently degrading Cortex', async () => {
+  let now = 0;
+  const platform = new ExtensionPlatform({ clock: () => now, failureThreshold: 2 });
+  platform.install({
+    id: 'slow.extension', version: '1.0.0', runtime: ExtensionRuntime.UI,
+    activationEvents: ['onCommand:slow'], capabilities: [], budgets: { activationMs: 10 },
+  });
+
+  await assert.rejects(platform.activate('slow.extension', {
+    event: 'onCommand:slow', runtime: ExtensionRuntime.UI,
+    loader: async () => { now = 25; return {}; },
+  }), /activation budget exceeded/);
+  assert.equal(platform.health('slow.extension').status, 'degraded');
+  assert.equal(platform.health('slow.extension').lastActivationMs, 25);
+});
+
+test('overlapping extension contributions are surfaced instead of hidden', () => {
+  const platform = new ExtensionPlatform();
+  platform.install({
+    id: 'formatter.one', version: '1.0.0', runtime: ExtensionRuntime.LANGUAGE,
+    activationEvents: ['onLanguage:javascript'], capabilities: [], contributions: { formatters: ['javascript'] },
+  });
+  platform.install({
+    id: 'formatter.two', version: '1.0.0', runtime: ExtensionRuntime.LANGUAGE,
+    activationEvents: ['onLanguage:javascript'], capabilities: [], contributions: { formatters: ['javascript'] },
+  });
+  assert.deepEqual(platform.health('formatter.two').conflicts, [
+    { kind: 'formatters', value: 'javascript', with: 'formatter.one' },
+  ]);
+});
