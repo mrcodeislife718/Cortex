@@ -33,14 +33,13 @@ export class ExtensionPlatform {
     return this.describe(manifest.id);
   }
 
-  uninstall(id) {
-    return this.extensions.delete(id);
-  }
+  uninstall(id) { return this.extensions.delete(id); }
 
   enable(id) {
     const state = this.#require(id);
     state.enabled = true;
     state.status = 'installed';
+    state.disabledReason = null;
     return this.describe(id);
   }
 
@@ -53,13 +52,8 @@ export class ExtensionPlatform {
     return this.describe(id);
   }
 
-  list() {
-    return [...this.extensions.keys()].map((id) => this.describe(id));
-  }
-
-  describe(id) {
-    return clone(this.#require(id));
-  }
+  list() { return [...this.extensions.keys()].map((id) => this.describe(id)); }
+  describe(id) { return clone(this.#require(id)); }
 
   eligibleFor(event) {
     return [...this.extensions.values()]
@@ -77,7 +71,13 @@ export class ExtensionPlatform {
     if (typeof loader !== 'function') throw new TypeError('extension activation requires a loader');
 
     if (this.securityKernel && state.manifest.capabilities.length) {
-      for (const capability of state.manifest.capabilities) this.securityKernel.require(token, capability, state.manifest.executionLevel);
+      for (const capability of state.manifest.capabilities) {
+        this.securityKernel.require(token, {
+          capability,
+          executionLevel: state.manifest.executionLevel,
+          resource: `extension:${id}`,
+        });
+      }
     }
 
     const started = this.clock();
