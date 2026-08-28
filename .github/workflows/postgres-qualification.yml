@@ -1,0 +1,32 @@
+name: PostgreSQL State Qualification
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  postgres-state:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: cortex
+          POSTGRES_PASSWORD: cortex
+          POSTGRES_DB: cortex_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cortex -d cortex_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CORTEX_TEST_POSTGRES_URL: postgresql://cortex:cortex@127.0.0.1:5432/cortex_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --no-audit --no-fund pg@8.23.0
+      - run: node --test test/postgres-integration.test.js
