@@ -4,13 +4,14 @@
   "version": "0.3.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 1420",
     "build": "vite build",
     "tauri": "tauri",
     "check": "vite build"
   },
   "dependencies": {
     "@tauri-apps/api": "2.11.1",
+    "@tauri-apps/plugin-dialog": "2.7.2",
     "monaco-editor": "0.56.0"
   },
   "devDependencies": {
