@@ -18,8 +18,10 @@ export class ExtensionPlatform {
   install(manifest) {
     validateManifest(manifest);
     if (this.extensions.has(manifest.id)) throw new Error(`extension already installed: ${manifest.id}`);
+    const normalized = normalizeManifest(manifest);
+    const conflicts = this.#findContributionConflicts(normalized);
     const state = {
-      manifest: normalizeManifest(manifest),
+      manifest: normalized,
       status: 'installed',
       enabled: true,
       activated: false,
@@ -27,6 +29,7 @@ export class ExtensionPlatform {
       failures: 0,
       lastError: null,
       lastActivationMs: null,
+      conflicts,
       installedAt: this.clock(),
     };
     this.extensions.set(manifest.id, state);
@@ -83,17 +86,27 @@ export class ExtensionPlatform {
     const started = this.clock();
     try {
       const api = await loader(clone(state.manifest));
+      const elapsed = Math.max(0, this.clock() - started);
+      state.lastActivationMs = elapsed;
+      if (elapsed > state.manifest.budgets.activationMs) {
+        state.failures++;
+        state.lastError = `activation budget exceeded: ${elapsed}ms > ${state.manifest.budgets.activationMs}ms`;
+        state.activated = false;
+        state.status = state.failures >= this.failureThreshold ? 'quarantined' : 'degraded';
+        throw new Error(state.lastError);
+      }
       state.activated = true;
       state.status = 'active';
       state.activations++;
-      state.lastActivationMs = Math.max(0, this.clock() - started);
       state.lastError = null;
       return api;
     } catch (error) {
-      state.failures++;
-      state.lastError = String(error?.message ?? error);
-      state.activated = false;
-      state.status = state.failures >= this.failureThreshold ? 'quarantined' : 'failed';
+      if (!String(error?.message ?? error).startsWith('activation budget exceeded:')) {
+        state.failures++;
+        state.lastError = String(error?.message ?? error);
+        state.activated = false;
+        state.status = state.failures >= this.failureThreshold ? 'quarantined' : 'failed';
+      }
       throw error;
     }
   }
@@ -109,7 +122,24 @@ export class ExtensionPlatform {
       failures: state.failures,
       lastActivationMs: state.lastActivationMs,
       lastError: state.lastError,
+      conflicts: clone(state.conflicts),
     };
+  }
+
+  #findContributionConflicts(manifest) {
+    const conflicts = [];
+    for (const state of this.extensions.values()) {
+      if (!state.enabled) continue;
+      for (const [kind, values] of Object.entries(manifest.contributions)) {
+        if (!Array.isArray(values)) continue;
+        const existing = state.manifest.contributions[kind];
+        if (!Array.isArray(existing)) continue;
+        for (const value of values) {
+          if (existing.includes(value)) conflicts.push({ kind, value, with: state.manifest.id });
+        }
+      }
+    }
+    return conflicts;
   }
 
   #require(id) {
@@ -126,6 +156,11 @@ function validateManifest(manifest) {
   if (!Object.values(ExtensionRuntime).includes(manifest.runtime)) throw new Error('extension runtime is invalid');
   if (!Array.isArray(manifest.activationEvents)) throw new Error('extension activationEvents must be an array');
   if (!Array.isArray(manifest.capabilities ?? [])) throw new Error('extension capabilities must be an array');
+  if (manifest.activationEvents.includes('*') && !manifest.startupJustification) {
+    throw new Error('wildcard startup activation requires explicit justification');
+  }
+  const activationMs = manifest.budgets?.activationMs ?? 500;
+  if (!Number.isFinite(activationMs) || activationMs <= 0) throw new Error('extension activation budget must be positive');
 }
 
 function normalizeManifest(manifest) {
@@ -134,8 +169,10 @@ function normalizeManifest(manifest) {
     version: manifest.version,
     runtime: manifest.runtime,
     activationEvents: [...new Set(manifest.activationEvents)],
+    startupJustification: manifest.startupJustification ?? null,
     capabilities: [...new Set(manifest.capabilities ?? [])],
     executionLevel: manifest.executionLevel ?? 'OBSERVE',
+    budgets: { activationMs: manifest.budgets?.activationMs ?? 500 },
     compatibility: {
       vscode: Boolean(manifest.compatibility?.vscode),
       apiVersion: manifest.compatibility?.apiVersion ?? null,
