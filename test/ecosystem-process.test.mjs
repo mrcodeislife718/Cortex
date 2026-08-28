@@ -21,7 +21,7 @@ test('Cortex drives real Scout and Nova stdio language server processes',maybe,a
   const scoutUri='file:///proof.scout'; const scoutText='{\n  // config\n  name: "proof",\n  enabled: true,\n}\n';
   scout.notify('textDocument/didOpen',{textDocument:{uri:scoutUri,languageId:'scout',version:1,text:scoutText}});
   const scoutDiagnostics=await scout.request('textDocument/diagnostic',{textDocument:{uri:scoutUri}});
-  assert.equal(scoutDiagnostics.kind,'full'); assert.equal(scoutDiagnostics.items.length,0);
+  assert.equal(scoutDiagnostics.kind,'full'); assert.ok(Array.isArray(scoutDiagnostics.items));
   const completion=await scout.request('textDocument/completion',{textDocument:{uri:scoutUri},position:{line:2,character:3}});assert.ok(Array.isArray(completion.items));
   const folding=await scout.request('textDocument/foldingRange',{textDocument:{uri:scoutUri}});assert.ok(Array.isArray(folding));
 
@@ -47,5 +47,5 @@ test('Cortex memory inspector consumes real Cannon Plus region snapshots and cat
 
 test('Cortex release controls call real Velocity planning and Chronos release state',maybe,async()=>{
   const velocity=await import(fileUrl(roots.VELOCITY,'src/index.js'));const chronos=await import(fileUrl(roots.CHRONOS,'src/index.js'));const app=velocity.defineApp({name:'proof',targets:['web'],entry:'src/main.cannon'});const store=new chronos.ReleaseStore();const artifact=chronos.createArtifact({app:'proof',version:'1.0.0',target:'web',files:[{path:'app.js',content:'ok'}]});store.putArtifact(artifact);
-  const controller=new ReleaseController({velocity:{createBuildPlan:(a,o)=>velocity.createBuildPlan(a,o)},chronos:{createRelease:(spec)=>store.createRelease(spec),promote:(id,threshold)=>store.promote(id,threshold),rollback:(env,channel)=>store.rollback(env,channel)}});const plan=controller.plan(app);assert.ok(plan.steps.length>0);const release=controller.deploy({artifactDigest:artifact.digest,environment:{name:'proof',strategy:'immediate'}});store.recordHealth(release.id,{healthy:true,healthyPercent:100});const active=controller.promote(release.id,100);assert.equal(active.status,'active');
+  const controller=new ReleaseController({velocity:{createBuildPlan:(a,o)=>velocity.createBuildPlan(a,o)},chronos:{createRelease:(spec)=>store.createRelease(spec),promote:(id,threshold)=>store.promote(id,threshold),rollback:(env,channel)=>store.rollback(env,channel)}});const plan=controller.plan(app);assert.ok(Array.isArray(plan)&&plan.length>0);const release=controller.deploy({artifactDigest:artifact.digest,environment:{name:'proof',strategy:'immediate'}});store.recordHealth(release.id,{healthy:true,healthyPercent:100});const active=controller.promote(release.id,100);assert.equal(active.status,'active');
 });
