@@ -18,10 +18,11 @@ export class BoundedProcessRunner {
       let stderr = '';
       let bytes = 0;
       let settled = false;
+      let timer = null;
       const finish = (fn, value) => {
         if (settled) return;
         settled = true;
-        clearTimeout(timer);
+        if (timer) clearTimeout(timer);
         fn(value);
       };
       const collect = (target, chunk) => {
@@ -45,7 +46,7 @@ export class BoundedProcessRunner {
         stderr,
         command: { command, args: [...args] },
       }));
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         child.kill('SIGKILL');
         finish(reject, new Error(`process execution exceeded ${timeoutMs}ms`));
       }, timeoutMs);
