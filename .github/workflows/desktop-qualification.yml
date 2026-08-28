@@ -28,4 +28,4 @@ jobs:
         run: npm run build
       - name: Check Rust desktop runtime
         working-directory: apps/desktop/src-tauri
-        run: cargo check --locked=false
+        run: cargo check
