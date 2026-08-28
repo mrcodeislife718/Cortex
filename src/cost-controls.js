@@ -14,17 +14,13 @@ export class DeterministicRequestCache {
     return clone(entry.value);
   }
   set(request, value, { scope = 'default' } = {}) {
-    const key = this.key(request, scope); this.entries.set(key, { value: clone(value), createdAt: this.clock() });
+    const key = this.key(request, scope); this.entries.set(key, { scope, value: clone(value), createdAt: this.clock() });
     while (this.entries.size > this.maxEntries) this.entries.delete(this.entries.keys().next().value);
     return key;
   }
   invalidateScope(scope) {
     let removed = 0;
-    for (const [key, entry] of this.entries) {
-      void entry;
-      if (key === this.key({}, scope)) continue;
-    }
-    for (const key of [...this.entries.keys()]) { this.entries.delete(key); removed++; }
+    for (const [key, entry] of [...this.entries]) if (entry.scope === scope) { this.entries.delete(key); removed++; }
     return removed;
   }
   clear() { const count = this.entries.size; this.entries.clear(); return count; }
