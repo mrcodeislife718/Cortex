@@ -1,9 +1,12 @@
 use serde::Serialize;
 use std::{
     fs,
+    io::Read,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
     sync::Mutex,
+    thread,
+    time::{Duration, Instant},
 };
 use tauri::State;
 
@@ -79,14 +82,14 @@ fn search_workspace(query: String, state: State<'_, WorkspaceState>) -> Result<V
 
 #[tauri::command]
 fn git_status(state: State<'_, WorkspaceState>) -> Result<CommandResult, String> {
-    run_bounded(&workspace_root(&state)?, "git", &["status".into(), "--porcelain=v1".into(), "-b".into()])
+    run_bounded(&workspace_root(&state)?, "git", &["status".into(), "--porcelain=v1".into(), "-b".into()], Duration::from_secs(10))
 }
 
 #[tauri::command]
 fn run_workspace_command(command: String, args: Vec<String>, state: State<'_, WorkspaceState>) -> Result<CommandResult, String> {
     if command.is_empty() || command.contains('/') || command.contains('\\') { return Err("command must be an executable name, not a path".into()); }
     if args.len() > 256 || args.iter().any(|arg| arg.len() > 8192) { return Err("command arguments exceed Cortex limits".into()); }
-    run_bounded(&workspace_root(&state)?, &command, &args)
+    run_bounded(&workspace_root(&state)?, &command, &args, Duration::from_secs(120))
 }
 
 fn workspace_root(state: &State<'_, WorkspaceState>) -> Result<PathBuf, String> {
@@ -126,16 +129,41 @@ fn walk_search(root: &Path, dir: &Path, query: &str, output: &mut Vec<SearchMatc
     Ok(())
 }
 fn is_ignored(name: &str) -> bool { matches!(name, ".git" | "node_modules" | "dist" | "build" | "coverage" | ".next" | ".turbo") }
-fn run_bounded(root: &Path, command: &str, args: &[String]) -> Result<CommandResult, String> {
-    let output = Command::new(command).args(args).current_dir(root).output().map_err(|error| error.to_string())?;
-    const MAX_OUTPUT: usize = 2 * 1024 * 1024;
-    if output.stdout.len() + output.stderr.len() > MAX_OUTPUT { return Err("command output exceeded Cortex interactive limit".into()); }
-    Ok(CommandResult { ok: output.status.success(), code: output.status.code(), stdout: String::from_utf8_lossy(&output.stdout).to_string(), stderr: String::from_utf8_lossy(&output.stderr).to_string() })
+
+fn run_bounded(root: &Path, command: &str, args: &[String], timeout: Duration) -> Result<CommandResult, String> {
+    const MAX_OUTPUT: u64 = 2 * 1024 * 1024;
+    let mut child = Command::new(command)
+        .args(args)
+        .current_dir(root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|error| error.to_string())?;
+    let stdout = child.stdout.take().ok_or("failed to capture stdout")?;
+    let stderr = child.stderr.take().ok_or("failed to capture stderr")?;
+    let stdout_reader = thread::spawn(move || { let mut bytes = Vec::new(); let _ = stdout.take(MAX_OUTPUT + 1).read_to_end(&mut bytes); bytes });
+    let stderr_reader = thread::spawn(move || { let mut bytes = Vec::new(); let _ = stderr.take(MAX_OUTPUT + 1).read_to_end(&mut bytes); bytes });
+    let started = Instant::now();
+    let status = loop {
+        if let Some(status) = child.try_wait().map_err(|error| error.to_string())? { break status; }
+        if started.elapsed() >= timeout {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(format!("command exceeded {}ms", timeout.as_millis()));
+        }
+        thread::sleep(Duration::from_millis(20));
+    };
+    let stdout = stdout_reader.join().map_err(|_| "stdout reader failed")?;
+    let stderr = stderr_reader.join().map_err(|_| "stderr reader failed")?;
+    if stdout.len() as u64 > MAX_OUTPUT || stderr.len() as u64 > MAX_OUTPUT || stdout.len() + stderr.len() > MAX_OUTPUT as usize { return Err("command output exceeded Cortex interactive limit".into()); }
+    Ok(CommandResult { ok: status.success(), code: status.code(), stdout: String::from_utf8_lossy(&stdout).to_string(), stderr: String::from_utf8_lossy(&stderr).to_string() })
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .manage(WorkspaceState(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![runtime_info, set_workspace, list_workspace, read_workspace_file, write_workspace_file, search_workspace, git_status, run_workspace_command])
         .run(tauri::generate_context!())
