@@ -1,6 +1,7 @@
 export * from './index.js';
 export * from './process-integration.js';
 export * from './system-graph.js';
+export * from './system-ingestion.js';
 export * from './security-kernel.js';
 export * from './intelligence-fabric.js';
 export * from './persistence.js';
