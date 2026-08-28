@@ -6,7 +6,21 @@ Cortex is an AI-native, systems-aware software engineering environment. It must 
 
 Cortex combines professional IDE capability, semantic program intelligence, the Cortex System Graph, model-independent AI, capability-secured engineering agents, execution awareness, durable project memory, evidence-backed qualification, and first-party ecosystem integration.
 
+Cortex is developer-first. Architectural sophistication must reduce developer effort rather than expose internal complexity. A developer should not need to understand graph schemas, retrieval systems, agent routing, model selection, evidence stores, or execution policy to receive their value. The default experience must turn those systems into direct outcomes such as: explain this code, find the cause, show what will break, make the change, run the right verification, recover from failure, and ship safely. Advanced internals remain inspectable and controllable rather than becoming mandatory workflow overhead.
+
 Core IDE operation must remain resilient to model/provider failure. AI providers are interchangeable through the Model Fabric. Repository and external content are untrusted data rather than authority. Every privileged action is mediated through explicit capabilities and execution levels.
+
+## Developer-first experience contract
+
+Cortex must compete to become the developer's first-choice environment by being measurably easier and faster to use, not by hiding missing capability behind simplified UI.
+
+Default workflows must minimize setup, clicks, repeated prompts, manual context gathering, tool switching, duplicated configuration, unnecessary confirmation, and waiting. Progressive disclosure is required: common tasks stay simple while deep controls, provenance, evidence, graph state, security decisions, runtime detail, and agent traces remain available when needed.
+
+The primary interaction model is intent-first. Developers should be able to express outcomes such as `fix this failure`, `implement this requirement`, `what depends on this`, `why is production slow`, `refactor this safely`, or `ship this change`; Cortex then assembles the relevant code, graph, runtime, test, Git, infrastructure, deployment, and project-memory context automatically.
+
+Cortex must preserve developer control. AI-generated changes are reviewable; side effects are visible; destructive or privileged actions are capability-gated; exact evidence behind recommendations is inspectable; and the IDE must remain useful when AI is unavailable.
+
+Developer-experience superiority is a proof obligation. Qualification must measure time-to-first-use, time-to-understand an unfamiliar repository, time-to-correct-change, number of manual steps/context switches, command discoverability, error recovery, successful task completion, latency, resource use, and developer intervention required. Competitor parity is not sufficient where Cortex claims superiority.
 
 ## Major layers
 
