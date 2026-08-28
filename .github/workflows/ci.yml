@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  qualification:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - run: npm test
+      - run: npm run check
 
   ecosystem-processes:
     runs-on: ubuntu-latest
@@ -37,7 +37,7 @@ jobs:
         with: { repository: mrcodeislife718/Chronos, path: chronos }
       - uses: actions/setup-node@v4
         with: { node-version: 24 }
-      - name: Prove real LSP, Cannon debug, Git, terminal, memory, Velocity and Chronos controls
+      - name: Prove real ecosystem process boundaries
         working-directory: cortex
         env:
           SCOUT_REPO: ${{ github.workspace }}/scout
