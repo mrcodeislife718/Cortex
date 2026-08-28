@@ -17,7 +17,7 @@ export class ContainerAgentSandbox {
   commandSpec({ workspace, command, args = [], network = false, writableWorkspace = false, memoryMb = this.defaultMemoryMb, cpu = this.defaultCpu, pids = this.defaultPids, env = {} }) {
     if (!workspace || !command) throw new Error('sandbox requires workspace and command');
     const root = path.resolve(workspace);
-    const mount = `${root}:/workspace${writableWorkspace ? ':rw' : ':ro'}`;
+    const mount = `type=bind,src=${root},dst=/workspace${writableWorkspace ? '' : ',readonly'}`;
     const runtimeArgs = [
       'run', '--rm', '--init',
       '--security-opt', 'no-new-privileges',
@@ -27,7 +27,7 @@ export class ContainerAgentSandbox {
       '--cpus', String(cpu),
       '--read-only',
       '--tmpfs', '/tmp:rw,noexec,nosuid,size=128m',
-      '--mount', `type=bind,src=${root},dst=/workspace,readonly=${writableWorkspace ? 'false' : 'true'}`,
+      '--mount', mount,
       '--workdir', '/workspace',
     ];
     if (!network) runtimeArgs.push('--network', 'none');
