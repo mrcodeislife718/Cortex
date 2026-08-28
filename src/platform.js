@@ -10,6 +10,8 @@ export * from './assistant-orchestrator.js';
 export * from './engineering-runtime.js';
 export * from './extension-platform.js';
 export * from './extension-process-host.js';
+export * from './vscode-compatibility.js';
+export * from './agent-sandbox.js';
 export * from './security-kernel.js';
 export * from './intelligence-fabric.js';
 export * from './model-runtime.js';
