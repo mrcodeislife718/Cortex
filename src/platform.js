@@ -17,6 +17,7 @@ export * from './security-kernel.js';
 export * from './oidc-identity.js';
 export * from './intelligence-fabric.js';
 export * from './model-runtime.js';
+export * from './model-providers.js';
 export * from './cost-controls.js';
 export * from './persistence.js';
 export * from './postgres-state.js';
