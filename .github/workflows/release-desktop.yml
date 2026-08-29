@@ -80,6 +80,7 @@ jobs:
           node --input-type=module <<'EOF'
           import fs from 'node:fs';
           const config = {
+            bundle: { createUpdaterArtifacts: true },
             plugins: {
               updater: {
                 pubkey: process.env.TAURI_UPDATER_PUBLIC_KEY,
