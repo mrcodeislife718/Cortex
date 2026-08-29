@@ -117,12 +117,26 @@ async fn redeem_activation(api_url: String, code: String) -> Result<(), String> 
 
 #[tauri::command]
 async fn commercial_entitlements(api_url: String) -> Result<serde_json::Value, String> {
-    let base = validate_api_url(&api_url)?;
+    authenticated_json_request(&api_url, "entitlements", reqwest::Method::GET, None).await
+}
+
+#[tauri::command]
+async fn commercial_assistant(api_url: String, input: String, context: serde_json::Value) -> Result<serde_json::Value, String> {
+    if input.trim().is_empty() || input.len() > 20_000 { return Err("assistant input must be 1-20000 characters".into()); }
+    if !context.is_array() { return Err("assistant context must be an array".into()); }
+    authenticated_json_request(&api_url, "assistant", reqwest::Method::POST, Some(serde_json::json!({"input": input, "context": context}))).await
+}
+
+async fn authenticated_json_request(api_url: &str, action: &str, method: reqwest::Method, body: Option<serde_json::Value>) -> Result<serde_json::Value, String> {
+    let base = validate_api_url(api_url)?;
     let token = credential_entry()?.get_password().map_err(|error| format!("Cortex session unavailable: {error}"))?;
-    let response = reqwest::Client::new().get(format!("{base}?action=entitlements")).bearer_auth(token).send().await.map_err(|error| format!("entitlement service unavailable: {error}"))?;
+    let client = reqwest::Client::builder().timeout(Duration::from_secs(60)).build().map_err(|error| error.to_string())?;
+    let mut request = client.request(method, format!("{base}?action={action}")).bearer_auth(token);
+    if let Some(body) = body { request = request.json(&body); }
+    let response = request.send().await.map_err(|error| format!("Cortex service unavailable: {error}"))?;
     if response.status().as_u16() == 401 { let _ = clear_commercial_session(); return Err("Cortex session expired".into()); }
-    if !response.status().is_success() { return Err(format!("entitlement check failed ({})", response.status().as_u16())); }
-    response.json().await.map_err(|error| format!("invalid entitlement response: {error}"))
+    if !response.status().is_success() { return Err(format!("Cortex service request failed ({})", response.status().as_u16())); }
+    response.json().await.map_err(|error| format!("invalid Cortex service response: {error}"))
 }
 
 fn credential_entry() -> Result<keyring::Entry, String> { keyring::Entry::new(CREDENTIAL_SERVICE, CREDENTIAL_USER).map_err(|error| format!("credential vault unavailable: {error}")) }
@@ -167,7 +181,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(WorkspaceState(Mutex::new(None)))
-        .invoke_handler(tauri::generate_handler![runtime_info, set_workspace, list_workspace, read_workspace_file, write_workspace_file, search_workspace, git_status, run_workspace_command, has_commercial_session, clear_commercial_session, redeem_activation, commercial_entitlements])
+        .invoke_handler(tauri::generate_handler![runtime_info, set_workspace, list_workspace, read_workspace_file, write_workspace_file, search_workspace, git_status, run_workspace_command, has_commercial_session, clear_commercial_session, redeem_activation, commercial_entitlements, commercial_assistant])
         .run(tauri::generate_context!())
         .expect("failed to run Cortex desktop runtime");
 }
