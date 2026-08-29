@@ -59,7 +59,7 @@ test('agent sandbox is network-off, read-only, capability-dropped and resource-b
   const sandbox = new ContainerAgentSandbox({ runtime: 'docker', image: 'node:24-alpine' });
   const spec = sandbox.commandSpec({ workspace: '/workspace/project', command: 'node', args: ['test.js'] });
   assert.equal(spec.command, 'docker');
-  assert.ok(spec.args.includes('no-new-privileges'));
+  assert.ok(spec.args.includes('no-new-privileges=true'));
   assert.ok(spec.args.includes('ALL'));
   assert.ok(spec.args.includes('--read-only'));
   assert.ok(spec.args.includes('none'));
