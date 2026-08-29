@@ -102,6 +102,19 @@ export class PostgresCommercialRepository {
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
   }
+  async recordUsage({ accountId, metric, quantity, metadata = {} }) {
+    if (!accountId || !metric || !Number.isFinite(quantity) || quantity < 0) throw new Error('invalid durable usage event');
+    const id = crypto.randomUUID();
+    await this.pool.query('INSERT INTO cortex_usage_events(id,account_id,metric,quantity,metadata) VALUES($1,$2,$3,$4,$5::jsonb)', [id, accountId, metric, quantity, JSON.stringify(metadata)]);
+    return { id, accountId, metric, quantity };
+  }
+  async usageSince(accountId, metric, since) {
+    if (!accountId || !metric) throw new Error('accountId and metric are required');
+    const date = since instanceof Date ? since : new Date(since);
+    if (Number.isNaN(date.getTime())) throw new Error('valid usage start time is required');
+    const result = await this.pool.query('SELECT COALESCE(SUM(quantity),0)::double precision AS total FROM cortex_usage_events WHERE account_id=$1 AND metric=$2 AND occurred_at >= $3', [accountId, metric, date]);
+    return Number(result.rows[0]?.total ?? 0);
+  }
 }
 
 export class StripeBillingAdapter {
