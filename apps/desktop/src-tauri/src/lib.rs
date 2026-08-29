@@ -1,3 +1,5 @@
+mod updater;
+
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -182,8 +184,10 @@ fn run_bounded(root: &Path, command: &str, args: &[String], timeout: Duration) -
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(WorkspaceState(Mutex::new(None)))
-        .invoke_handler(tauri::generate_handler![runtime_info, set_workspace, list_workspace, read_workspace_file, write_workspace_file, search_workspace, git_status, run_workspace_command, has_commercial_session, clear_commercial_session, redeem_activation, commercial_entitlements, commercial_assistant])
+        .manage(updater::PendingUpdate::default())
+        .invoke_handler(tauri::generate_handler![runtime_info, set_workspace, list_workspace, read_workspace_file, write_workspace_file, search_workspace, git_status, run_workspace_command, has_commercial_session, clear_commercial_session, redeem_activation, commercial_entitlements, commercial_assistant, updater::check_for_updates, updater::install_pending_update])
         .run(tauri::generate_context!())
         .expect("failed to run Cortex desktop runtime");
 }
