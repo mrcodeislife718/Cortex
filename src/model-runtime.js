@@ -44,6 +44,8 @@ export class ModelRuntime {
     accountId = 'local',
     budgetUsd = Infinity,
   } = {}) {
+    if (!Number.isFinite(budgetUsd) && budgetUsd !== Infinity) throw new Error('model budget must be finite or Infinity');
+    if (budgetUsd < 0) throw new Error('model budget must be non-negative');
     const candidates = this.#candidates(preferred, require);
     if (!candidates.length) throw new Error('no eligible model providers');
     const errors = [];
@@ -51,9 +53,8 @@ export class ModelRuntime {
     for (const [name, state] of candidates) {
       if (state.circuitOpenUntil > this.clock()) continue;
       const estimated = estimateRequestCost(request, state.metadata);
-      const spent = this.usage.get(accountId) ?? 0;
-      if (spent + estimated > budgetUsd) {
-        errors.push(new Error(`${name}: request would exceed model budget`));
+      if (estimated > budgetUsd) {
+        errors.push(new Error(`${name}: request would exceed per-request model budget`));
         continue;
       }
       for (let attempt = 0; attempt <= retries; attempt++) {
@@ -62,7 +63,7 @@ export class ModelRuntime {
           const result = await withTimeout((signal) => state.provider.generate(clone(request), { signal }), timeoutMs);
           if (!validate(result)) throw new MalformedModelResponseError(name);
           const cost = costFromResult(result, request, state.metadata);
-          if (spent + cost > budgetUsd) throw new Error(`${name}: model response exceeded cost budget`);
+          if (cost > budgetUsd) throw new Error(`${name}: model response exceeded per-request cost budget`);
           this.usage.set(accountId, (this.usage.get(accountId) ?? 0) + cost);
           state.consecutiveFailures = 0;
           state.circuitOpenUntil = 0;
