@@ -33,6 +33,30 @@ export const CortexPostgresMigrations = Object.freeze([
       CREATE INDEX IF NOT EXISTS cortex_usage_account_metric_idx ON cortex_usage_events(account_id, metric, occurred_at);
     `,
   },
+  {
+    id: 3,
+    sql: `
+      CREATE TABLE IF NOT EXISTS cortex_subscriptions (
+        account_id TEXT PRIMARY KEY,
+        provider TEXT NOT NULL DEFAULT 'stripe',
+        provider_customer_id TEXT,
+        provider_subscription_id TEXT,
+        plan TEXT,
+        seats INTEGER NOT NULL DEFAULT 1 CHECK (seats > 0),
+        status TEXT NOT NULL,
+        current_period_end TIMESTAMPTZ,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS cortex_subscriptions_customer_idx ON cortex_subscriptions(provider_customer_id);
+      CREATE INDEX IF NOT EXISTS cortex_subscriptions_subscription_idx ON cortex_subscriptions(provider_subscription_id);
+      CREATE TABLE IF NOT EXISTS cortex_billing_events (
+        event_id TEXT PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        payload JSONB NOT NULL
+      );
+    `,
+  },
 ]);
 
 export class PostgresStateStore {
