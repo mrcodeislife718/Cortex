@@ -31,6 +31,7 @@
     "./remote": "./src/remote-execution.js",
     "./accounts": "./src/account-service.js",
     "./commercialization": "./src/commercialization.js",
+    "./commercial-runtime": "./src/commercial-runtime.js",
     "./updates": "./src/update-manager.js",
     "./privacy": "./src/privacy-controls.js",
     "./observability": "./src/observability.js",
@@ -38,16 +39,13 @@
     "./performance": "./src/performance-qualification.js"
   },
   "scripts": {
-    "test": "node --test test/cortex.test.js test/platform-foundation.test.js test/system-ingestion.test.js test/developer-platform.test.js test/extension-process-host.test.js test/product-closure.test.js test/security-compatibility.test.js test/identity-cost-extension.test.js test/assistant-adversarial.test.js",
+    "test": "node --test test/cortex.test.js test/platform-foundation.test.js test/system-ingestion.test.js test/developer-platform.test.js test/extension-process-host.test.js test/product-closure.test.js test/security-compatibility.test.js test/identity-cost-extension.test.js test/assistant-adversarial.test.js test/commercial-runtime.test.js",
     "test:ecosystem": "node --test test/ecosystem-process.test.mjs",
-    "check:syntax": "node --check src/index.js && node --check src/process-integration.js && node --check src/system-graph.js && node --check src/system-ingestion.js && node --check src/system-evidence-ingestion.js && node --check src/developer-experience.js && node --check src/workspace-intelligence.js && node --check src/workbench-core.js && node --check src/assistant-orchestrator.js && node --check src/engineering-runtime.js && node --check src/extension-platform.js && node --check src/extension-process-host.js && node --check src/extension-worker.js && node --check src/extension-packages.js && node --check src/vscode-compatibility.js && node --check src/agent-sandbox.js && node --check src/security-kernel.js && node --check src/oidc-identity.js && node --check src/intelligence-fabric.js && node --check src/model-runtime.js && node --check src/cost-controls.js && node --check src/persistence.js && node --check src/postgres-state.js && node --check src/session-recovery.js && node --check src/remote-execution.js && node --check src/account-service.js && node --check src/commercialization.js && node --check src/update-manager.js && node --check src/privacy-controls.js && node --check src/observability.js && node --check src/telemetry-exporters.js && node --check src/performance-qualification.js && node --check src/platform.js",
+    "check:syntax": "node --check src/index.js && node --check src/process-integration.js && node --check src/system-graph.js && node --check src/system-ingestion.js && node --check src/system-evidence-ingestion.js && node --check src/developer-experience.js && node --check src/workspace-intelligence.js && node --check src/workbench-core.js && node --check src/assistant-orchestrator.js && node --check src/engineering-runtime.js && node --check src/extension-platform.js && node --check src/extension-process-host.js && node --check src/extension-worker.js && node --check src/extension-packages.js && node --check src/vscode-compatibility.js && node --check src/agent-sandbox.js && node --check src/security-kernel.js && node --check src/oidc-identity.js && node --check src/intelligence-fabric.js && node --check src/model-runtime.js && node --check src/cost-controls.js && node --check src/persistence.js && node --check src/postgres-state.js && node --check src/session-recovery.js && node --check src/remote-execution.js && node --check src/account-service.js && node --check src/commercialization.js && node --check src/commercial-runtime.js && node --check src/update-manager.js && node --check src/privacy-controls.js && node --check src/observability.js && node --check src/telemetry-exporters.js && node --check src/performance-qualification.js && node --check src/platform.js && node --check api/cortex.js",
     "check": "npm run check:syntax && npm test"
   },
-  "peerDependencies": {
-    "pg": ">=8.23.0 <9"
-  },
-  "peerDependenciesMeta": {
-    "pg": { "optional": true }
+  "dependencies": {
+    "pg": "8.23.0"
   },
   "engines": { "node": ">=20" },
   "license": "MIT"
