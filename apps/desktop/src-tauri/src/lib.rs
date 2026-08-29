@@ -97,7 +97,9 @@ fn run_workspace_command(command: String, args: Vec<String>, state: State<'_, Wo
 }
 
 #[tauri::command]
-fn has_commercial_session() -> bool { credential_entry().and_then(|entry| entry.get_password().ok()).is_some() }
+fn has_commercial_session() -> bool {
+    credential_entry().ok().and_then(|entry| entry.get_password().ok()).is_some()
+}
 
 #[tauri::command]
 fn clear_commercial_session() -> Result<(), String> {
