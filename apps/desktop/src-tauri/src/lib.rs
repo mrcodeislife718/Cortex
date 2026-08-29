@@ -1,3 +1,4 @@
+mod protocol_host;
 mod session;
 mod updater;
 mod workspace_ops;
@@ -189,13 +190,15 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(WorkspaceState(Mutex::new(None)))
         .manage(updater::PendingUpdate::default())
+        .manage(protocol_host::ProtocolHost::default())
         .invoke_handler(tauri::generate_handler![
             runtime_info, set_workspace, list_workspace, read_workspace_file, write_workspace_file, search_workspace, git_status, run_workspace_command,
             has_commercial_session, clear_commercial_session, redeem_activation, commercial_entitlements, commercial_assistant,
             updater::check_for_updates, updater::install_pending_update,
             workspace_ops::create_workspace_file, workspace_ops::create_workspace_directory, workspace_ops::rename_workspace_entry, workspace_ops::delete_workspace_entry,
             workspace_ops::git_diff, workspace_ops::git_stage, workspace_ops::git_unstage, workspace_ops::git_commit, workspace_ops::discover_project_tasks, workspace_ops::run_project_task,
-            session::save_workspace_session, session::restore_workspace_session, session::clear_workspace_session
+            session::save_workspace_session, session::restore_workspace_session, session::clear_workspace_session,
+            protocol_host::protocol_start, protocol_host::lsp_request, protocol_host::lsp_notify, protocol_host::dap_request, protocol_host::dap_notify, protocol_host::protocol_take_notifications, protocol_host::protocol_stop
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Cortex desktop runtime");
