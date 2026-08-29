@@ -18,6 +18,7 @@ export default async function handler(req, res) {
     const session = runtime.authenticate(req.headers.authorization);
     if (action === 'entitlements' && req.method === 'GET') return json(res, 200, await runtime.entitlementStatus(session));
     if (action === 'activation' && req.method === 'POST') return json(res, 200, await runtime.createDesktopActivation(session));
+    if (action === 'assistant' && req.method === 'POST') { const body = await parseJson(req); return json(res, 200, await runtime.assistant({ session, input: body.input, context: body.context, budgetUsd: body.budgetUsd })); }
     if (action === 'checkout' && req.method === 'POST') {
       const body = await parseJson(req); const appUrl = requiredEnv('CORTEX_APP_URL').replace(/\/$/, '');
       const priceIds = { pro_monthly: process.env.STRIPE_PRICE_PRO_MONTHLY, pro_annual: process.env.STRIPE_PRICE_PRO_ANNUAL, team_monthly: process.env.STRIPE_PRICE_TEAM_MONTHLY, team_annual: process.env.STRIPE_PRICE_TEAM_ANNUAL };
