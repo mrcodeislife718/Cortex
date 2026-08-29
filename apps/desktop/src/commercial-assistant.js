@@ -1,5 +1,6 @@
 import * as monaco from 'monaco-editor';
 import { invoke } from '@tauri-apps/api/core';
+import './commercial-assistant.css';
 
 const apiUrl = String(import.meta.env.VITE_CORTEX_COMMERCIAL_API_URL ?? '').trim().replace(/\/$/, '');
 const form = document.getElementById('assistant-form');
