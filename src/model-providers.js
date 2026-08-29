@@ -1,7 +1,7 @@
 const clone = (value) => globalThis.structuredClone(value);
 
 export class OpenAIResponsesProvider {
-  constructor({ apiKey, model = 'gpt-5.4', fetchImpl = globalThis.fetch, baseUrl = 'https://api.openai.com/v1' } = {}) {
+  constructor({ apiKey, model = 'gpt-5.6', fetchImpl = globalThis.fetch, baseUrl = 'https://api.openai.com/v1' } = {}) {
     if (!apiKey) throw new Error('OpenAI API key is required'); this.apiKey = apiKey; this.model = model; this.fetchImpl = fetchImpl; this.baseUrl = baseUrl.replace(/\/$/, '');
   }
   async generate(request, { signal } = {}) {
