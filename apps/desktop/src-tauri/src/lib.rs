@@ -1,4 +1,6 @@
+mod session;
 mod updater;
+mod workspace_ops;
 
 use serde::{Deserialize, Serialize};
 use std::{
@@ -12,7 +14,7 @@ use std::{
 };
 use tauri::State;
 
-struct WorkspaceState(Mutex<Option<PathBuf>>);
+pub(crate) struct WorkspaceState(Mutex<Option<PathBuf>>);
 const CREDENTIAL_SERVICE: &str = "Cortex";
 const CREDENTIAL_USER: &str = "commercial-session";
 
@@ -23,7 +25,7 @@ struct WorkspaceEntry { name: String, relative_path: String, is_directory: bool,
 #[derive(Serialize)]
 struct SearchMatch { relative_path: String, line: usize, preview: String }
 #[derive(Serialize)]
-struct CommandResult { ok: bool, code: Option<i32>, stdout: String, stderr: String }
+pub(crate) struct CommandResult { ok: bool, code: Option<i32>, stdout: String, stderr: String }
 #[derive(Deserialize)]
 struct ActivationResponse { token: String }
 
@@ -149,7 +151,7 @@ fn validate_api_url(value: &str) -> Result<String, String> {
     if !trimmed.starts_with("https://") && !trimmed.starts_with("http://127.0.0.1") && !trimmed.starts_with("http://localhost") { return Err("commercial API must use HTTPS".into()); }
     Ok(trimmed.to_string())
 }
-fn workspace_root(state: &State<'_, WorkspaceState>) -> Result<PathBuf, String> { state.0.lock().map_err(|_| "workspace state poisoned")?.clone().ok_or_else(|| "no workspace is open".into()) }
+pub(crate) fn workspace_root(state: &State<'_, WorkspaceState>) -> Result<PathBuf, String> { state.0.lock().map_err(|_| "workspace state poisoned")?.clone().ok_or_else(|| "no workspace is open".into()) }
 fn resolve_existing(root: &Path, relative: &str) -> Result<PathBuf, String> { let candidate = fs::canonicalize(root.join(relative)).map_err(|error| error.to_string())?; if !candidate.starts_with(root) { return Err("workspace path escape denied".into()); } Ok(candidate) }
 fn resolve_for_write(root: &Path, relative: &str) -> Result<PathBuf, String> { let raw = root.join(relative); let parent = raw.parent().ok_or("invalid workspace path")?; let canonical_parent = fs::canonicalize(parent).map_err(|error| error.to_string())?; if !canonical_parent.starts_with(root) { return Err("workspace path escape denied".into()); } Ok(canonical_parent.join(raw.file_name().ok_or("invalid file name")?)) }
 fn walk_search(root: &Path, dir: &Path, query: &str, output: &mut Vec<SearchMatch>, limit: usize) -> Result<(), String> {
@@ -167,7 +169,7 @@ fn walk_search(root: &Path, dir: &Path, query: &str, output: &mut Vec<SearchMatc
 }
 fn is_ignored(name: &str) -> bool { matches!(name, ".git" | "node_modules" | "dist" | "build" | "coverage" | ".next" | ".turbo") }
 
-fn run_bounded(root: &Path, command: &str, args: &[String], timeout: Duration) -> Result<CommandResult, String> {
+pub(crate) fn run_bounded(root: &Path, command: &str, args: &[String], timeout: Duration) -> Result<CommandResult, String> {
     const MAX_OUTPUT: u64 = 2 * 1024 * 1024;
     let mut child = Command::new(command).args(args).current_dir(root).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().map_err(|error| error.to_string())?;
     let stdout = child.stdout.take().ok_or("failed to capture stdout")?; let stderr = child.stderr.take().ok_or("failed to capture stderr")?;
@@ -187,7 +189,14 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(WorkspaceState(Mutex::new(None)))
         .manage(updater::PendingUpdate::default())
-        .invoke_handler(tauri::generate_handler![runtime_info, set_workspace, list_workspace, read_workspace_file, write_workspace_file, search_workspace, git_status, run_workspace_command, has_commercial_session, clear_commercial_session, redeem_activation, commercial_entitlements, commercial_assistant, updater::check_for_updates, updater::install_pending_update])
+        .invoke_handler(tauri::generate_handler![
+            runtime_info, set_workspace, list_workspace, read_workspace_file, write_workspace_file, search_workspace, git_status, run_workspace_command,
+            has_commercial_session, clear_commercial_session, redeem_activation, commercial_entitlements, commercial_assistant,
+            updater::check_for_updates, updater::install_pending_update,
+            workspace_ops::create_workspace_file, workspace_ops::create_workspace_directory, workspace_ops::rename_workspace_entry, workspace_ops::delete_workspace_entry,
+            workspace_ops::git_diff, workspace_ops::git_stage, workspace_ops::git_unstage, workspace_ops::git_commit, workspace_ops::discover_project_tasks, workspace_ops::run_project_task,
+            session::save_workspace_session, session::restore_workspace_session, session::clear_workspace_session
+        ])
         .run(tauri::generate_context!())
         .expect("failed to run Cortex desktop runtime");
 }
