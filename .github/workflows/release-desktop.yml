@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: cortex-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   package:
     strategy:
@@ -17,20 +21,29 @@ jobs:
         include:
           - os: ubuntu-24.04
             artifact: cortex-linux-x64
+            update_target: linux-x86_64
+            bundles: deb,appimage
           - os: windows-2025
             artifact: cortex-windows-x64
+            update_target: windows-x86_64
+            bundles: msi,nsis
           - os: macos-15
-            artifact: cortex-macos
+            artifact: cortex-macos-arm64
+            update_target: darwin-aarch64
+            bundles: app,dmg
     runs-on: ${{ matrix.os }}
     env:
       VITE_CORTEX_COMMERCIAL_API_URL: ${{ vars.CORTEX_COMMERCIAL_API_URL }}
+      TAURI_UPDATER_PUBLIC_KEY: ${{ vars.TAURI_UPDATER_PUBLIC_KEY }}
+      CORTEX_UPDATE_TARGET: ${{ matrix.update_target }}
+      CORTEX_ARTIFACT_NAME: ${{ matrix.artifact }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - uses: dtolnay/rust-toolchain@stable
-      - name: Require Cortex commercial endpoint
+      - name: Require Cortex commercial release configuration
         shell: bash
         run: |
           if [ -z "$VITE_CORTEX_COMMERCIAL_API_URL" ]; then
@@ -41,6 +54,16 @@ jobs:
             https://*) ;;
             *) echo "Cortex commercial API must use HTTPS" >&2; exit 1 ;;
           esac
+          if [ -z "$TAURI_UPDATER_PUBLIC_KEY" ]; then
+            echo "TAURI_UPDATER_PUBLIC_KEY repository variable is required for signed update builds" >&2
+            exit 1
+          fi
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY secret is required for signed update builds" >&2
+            exit 1
+          fi
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
       - name: Install Linux Tauri dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
@@ -50,6 +73,23 @@ jobs:
       - name: Generate Cortex platform icons
         working-directory: apps/desktop
         run: npm run tauri -- icon assets/cortex-app-icon.svg
+      - name: Generate signed updater configuration
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from 'node:fs';
+          const config = {
+            plugins: {
+              updater: {
+                pubkey: process.env.TAURI_UPDATER_PUBLIC_KEY,
+                endpoints: ['https://github.com/mrcodeislife718/Cortex/releases/latest/download/latest.json'],
+                windows: { installMode: 'passive' }
+              }
+            }
+          };
+          fs.writeFileSync('src-tauri/tauri.release.conf.json', JSON.stringify(config, null, 2));
+          EOF
       - name: Build Cortex desktop
         working-directory: apps/desktop
         env:
@@ -61,7 +101,16 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npm run tauri -- build
+        run: npm run tauri -- build --config src-tauri/tauri.release.conf.json --bundles "${{ matrix.bundles }}"
+      - name: Record updater target metadata
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from 'node:fs';
+          const output = 'src-tauri/target/release/bundle/cortex-update-target.json';
+          fs.writeFileSync(output, JSON.stringify({ target: process.env.CORTEX_UPDATE_TARGET, artifact: process.env.CORTEX_ARTIFACT_NAME }, null, 2));
+          EOF
       - name: Upload package bundle
         uses: actions/upload-artifact@v4
         with:
@@ -74,12 +123,18 @@ jobs:
     needs: package
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: release-assets
+      - name: Build signed update manifest
+        env:
+          CORTEX_RELEASE_TAG: ${{ github.ref_name }}
+        run: node scripts/build-tauri-update-manifest.mjs release-assets latest.json
       - name: Create GitHub release and publish Cortex installers
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 || gh release create "${GITHUB_REF_NAME}" --title "Cortex ${GITHUB_REF_NAME}" --generate-notes
-          find release-assets -type f -print0 | xargs -0 -r gh release upload "${GITHUB_REF_NAME}" --clobber
+          find release-assets -type f ! -name 'cortex-update-target.json' -print0 | xargs -0 -r gh release upload "${GITHUB_REF_NAME}" --clobber
+          gh release upload "${GITHUB_REF_NAME}" latest.json --clobber
