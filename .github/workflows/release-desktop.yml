@@ -22,12 +22,25 @@ jobs:
           - os: macos-15
             artifact: cortex-macos
     runs-on: ${{ matrix.os }}
+    env:
+      VITE_CORTEX_COMMERCIAL_API_URL: ${{ vars.CORTEX_COMMERCIAL_API_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - uses: dtolnay/rust-toolchain@stable
+      - name: Require Cortex commercial endpoint
+        shell: bash
+        run: |
+          if [ -z "$VITE_CORTEX_COMMERCIAL_API_URL" ]; then
+            echo "CORTEX_COMMERCIAL_API_URL repository variable is required for commercial release builds" >&2
+            exit 1
+          fi
+          case "$VITE_CORTEX_COMMERCIAL_API_URL" in
+            https://*) ;;
+            *) echo "Cortex commercial API must use HTTPS" >&2; exit 1 ;;
+          esac
       - name: Install Linux Tauri dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
