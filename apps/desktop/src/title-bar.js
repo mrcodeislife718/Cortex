@@ -1,3 +1,5 @@
+import './title-bar.css';
+
 const workbench = document.querySelector('.workbench');
 if (workbench) installTitleBar(workbench);
 
