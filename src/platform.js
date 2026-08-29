@@ -24,6 +24,7 @@ export * from './session-recovery.js';
 export * from './remote-execution.js';
 export * from './account-service.js';
 export * from './commercialization.js';
+export * from './commercial-runtime.js';
 export * from './update-manager.js';
 export * from './privacy-controls.js';
 export * from './observability.js';
