@@ -2,7 +2,12 @@ name: Desktop Qualification
 
 on:
   push:
+    branches: [main]
   pull_request:
+
+concurrency:
+  group: desktop-qualification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   desktop:
