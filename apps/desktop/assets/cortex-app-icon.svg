@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Cortex">
+  <defs>
+    <linearGradient id="cortex-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#17141f"/>
+      <stop offset="1" stop-color="#211b31"/>
+    </linearGradient>
+    <linearGradient id="cortex-accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b59cff"/>
+      <stop offset="1" stop-color="#7658e8"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#cortex-bg)"/>
+  <path d="M371 145c-30-27-68-41-112-41-92 0-163 65-163 152s71 152 163 152c44 0 82-14 112-41l-42-50c-19 16-41 24-68 24-50 0-87-34-87-85s37-85 87-85c27 0 49 8 68 24z" fill="url(#cortex-accent)"/>
+  <path d="M304 210h111v92H304c-25 0-45-20-45-46s20-46 45-46z" fill="#f3efff" opacity=".96"/>
+  <circle cx="367" cy="256" r="17" fill="#17141f"/>
+</svg>
