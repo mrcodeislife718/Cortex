@@ -83,6 +83,25 @@ export class PostgresCommercialRepository {
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
   }
+  async createActivation(accountId, { ttlSeconds = 600 } = {}) {
+    const code = crypto.randomBytes(24).toString('base64url');
+    const hash = crypto.createHash('sha256').update(code).digest('hex');
+    await this.pool.query('DELETE FROM cortex_activation_codes WHERE expires_at <= now()');
+    await this.pool.query('INSERT INTO cortex_activation_codes(code_hash,account_id,expires_at) VALUES($1,$2,now()+($3 * interval \'1 second\'))', [hash, accountId, ttlSeconds]);
+    return { code, expiresIn: ttlSeconds };
+  }
+  async redeemActivation(code) {
+    if (!code || String(code).length < 20) return null;
+    const hash = crypto.createHash('sha256').update(String(code)).digest('hex');
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await client.query('DELETE FROM cortex_activation_codes WHERE code_hash=$1 AND expires_at > now() RETURNING account_id', [hash]);
+      await client.query('COMMIT');
+      return result.rowCount ? result.rows[0].account_id : null;
+    } catch (error) { await client.query('ROLLBACK'); throw error; }
+    finally { client.release(); }
+  }
 }
 
 export class StripeBillingAdapter {
