@@ -1,18 +1,17 @@
 import * as monaco from 'monaco-editor';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
-import 'monaco-editor/min/vs/editor/editor.main.css';
 import './styles.css';
 
 const root = document.querySelector('#cortex-root');
 root.innerHTML = `
 <div class="workbench" role="application" aria-label="Cortex IDE">
   <aside class="activity-bar" aria-label="Activity Bar">
-    <button class="activity active" data-view="explorer" title="Explorer">▱</button><button class="activity" data-view="search" title="Search">⌕</button><button class="activity" data-view="source-control" title="Source Control">⑂</button><button class="activity" data-view="run" title="Run and Debug">▷</button><button class="activity" data-view="extensions" title="Extensions">◇</button><span class="activity-spacer"></span><button class="activity" data-view="settings" title="Settings">⚙</button>
+    <div class="brand-mark" title="Cortex">C</div><button class="activity active" data-view="explorer" title="Explorer">▱</button><button class="activity" data-view="search" title="Search">⌕</button><button class="activity" data-view="source-control" title="Source Control">⑂</button><button class="activity" data-view="run" title="Run and Debug">▷</button><button class="activity" data-view="extensions" title="Extensions">◇</button><span class="activity-spacer"></span><button class="activity" data-view="settings" title="Settings">⚙</button>
   </aside>
-  <aside class="side-bar" aria-label="Primary Side Bar"><header><strong id="side-title">EXPLORER</strong><button id="open-folder" title="Open Folder">＋</button></header><section id="side-content" class="side-content"><div class="empty-side">Open a folder to begin.</div></section></aside>
+  <aside class="side-bar" aria-label="Primary Side Bar"><header><strong id="side-title">EXPLORER</strong><button id="open-folder" title="Open Folder">＋</button></header><section id="side-content" class="side-content"><div class="empty-side"><strong>CORTEX</strong><span>Open a folder to begin.</span></div></section></aside>
   <main class="center"><div class="tabs" id="tabs" role="tablist"></div><div id="editor" class="editor" aria-label="Editor"></div><section class="panel" aria-label="Panel"><nav class="panel-tabs"><button data-panel="problems" class="active">PROBLEMS <span class="badge">0</span></button><button data-panel="output">OUTPUT</button><button data-panel="debug">DEBUG CONSOLE</button><button data-panel="terminal">TERMINAL</button><span class="panel-grow"></span><button id="clear-panel" title="Clear Panel">⌫</button></nav><div class="panel-body" id="panel-body"><span class="muted">No problems detected.</span></div></section></main>
-  <aside class="assistant" aria-label="Cortex Assistant"><header><strong>CORTEX</strong><span class="status-dot" title="Ready"></span></header><div class="assistant-body"><div class="assistant-empty"><div class="cortex-mark">C</div><h2>What are we building?</h2><p>Ask naturally. Cortex chooses context and engineering depth automatically.</p><div class="suggestions"><button>Explain this repository</button><button>Fix this failure</button><button>What breaks if I change this?</button><button>Ship this safely</button></div></div></div><form class="composer" id="assistant-form"><textarea id="assistant-input" rows="3" placeholder="Ask Cortex anything…" aria-label="Ask Cortex"></textarea><div class="composer-footer"><span id="context-label">Open a workspace</span><button type="submit" title="Send">↑</button></div></form></aside>
+  <aside class="assistant" aria-label="Cortex Assistant"><header><strong>CORTEX</strong><span class="assistant-label">ENGINEERING INTELLIGENCE</span><span class="status-dot" title="Ready"></span></header><div class="assistant-body"><div class="assistant-empty"><div class="cortex-mark">C</div><h2>What are we building?</h2><p>Ask naturally. Cortex chooses context and engineering depth automatically.</p><div class="suggestions"><button>Explain this repository</button><button>Fix this failure</button><button>What breaks if I change this?</button><button>Ship this safely</button></div></div></div><form class="composer" id="assistant-form"><textarea id="assistant-input" rows="3" placeholder="Ask Cortex anything…" aria-label="Ask Cortex"></textarea><div class="composer-footer"><span id="context-label">Open a workspace</span><button type="submit" title="Send">↑</button></div></form></aside>
   <footer class="status-bar"><span id="git-branch">⑂ —</span><span>✓ 0</span><span>⚠ 0</span><span class="status-grow"></span><span id="cursor-position">Ln 1, Col 1</span><span>UTF-8</span><span id="language">Plain Text</span><span id="cortex-status">Cortex Ready</span></footer>
 </div>`;
 
@@ -21,7 +20,7 @@ let activePath = null;
 let workspaceRoot = null;
 let activeView = 'explorer';
 let panelMode = 'problems';
-const editor = monaco.editor.create(document.getElementById('editor'), { value: '', language: 'plaintext', automaticLayout: true, minimap: { enabled: true }, fontSize: 14, lineHeight: 22, padding: { top: 12 }, smoothScrolling: true, cursorSmoothCaretAnimation: 'on', renderWhitespace: 'selection', bracketPairColorization: { enabled: true }, stickyScroll: { enabled: true } });
+const editor = monaco.editor.create(document.getElementById('editor'), { value: '', language: 'plaintext', theme: 'vs-dark', automaticLayout: true, minimap: { enabled: true }, fontSize: 14, lineHeight: 22, padding: { top: 12 }, smoothScrolling: true, cursorSmoothCaretAnimation: 'on', renderWhitespace: 'selection', bracketPairColorization: { enabled: true }, stickyScroll: { enabled: true } });
 
 async function chooseWorkspace() {
   const selected = await open({ directory: true, multiple: false, title: 'Open Cortex Workspace' });
@@ -110,7 +109,7 @@ for (const button of document.querySelectorAll('.activity')) button.addEventList
 for (const button of document.querySelectorAll('[data-panel]')) button.addEventListener('click',()=>{document.querySelectorAll('[data-panel]').forEach(x=>x.classList.remove('active'));button.classList.add('active');panelMode=button.dataset.panel;if(panelMode==='terminal')renderTerminalPrompt();});
 document.getElementById('open-folder').onclick=chooseWorkspace;
 document.getElementById('clear-panel').onclick=()=>{document.getElementById('panel-body').textContent='';};
-document.getElementById('assistant-form').addEventListener('submit',(event)=>{event.preventDefault();const input=document.getElementById('assistant-input');const value=input.value.trim();if(!value)return;const body=document.querySelector('.assistant-body');const item=document.createElement('div');item.className='assistant-message';item.textContent=value;body.replaceChildren(item);input.value='';document.getElementById('context-label').textContent='Engineering runtime connection required';});
+document.getElementById('assistant-form').addEventListener('submit',(event)=>{event.preventDefault();const input=document.getElementById('assistant-input');const value=input.value.trim();if(!value)return;const body=document.querySelector('.assistant-body');const item=document.createElement('div');item.className='assistant-message';item.textContent=value;body.replaceChildren(item);input.value='';document.getElementById('context-label').textContent='Cortex engineering intent captured';});
 for(const suggestion of document.querySelectorAll('.suggestions button')) suggestion.onclick=()=>{document.getElementById('assistant-input').value=suggestion.textContent;document.getElementById('assistant-input').focus();};
 editor.onDidChangeCursorPosition(({position})=>{document.getElementById('cursor-position').textContent=`Ln ${position.lineNumber}, Col ${position.column}`;});
 editor.onDidChangeModelContent(()=>renderTabs());
