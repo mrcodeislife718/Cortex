@@ -16,7 +16,7 @@ function installTitleBar(host) {
     Go: [['Command Palette…',()=>shortcut('p',true)]],
     Run: [['Run and Debug',()=>view('run')],['Terminal',()=>document.querySelector('[data-panel="terminal"]')?.click()]],
     Terminal: [['New Terminal',()=>document.querySelector('[data-panel="terminal"]')?.click()]],
-    Help: [['About Cortex',showAbout]],
+    Help: [['Check for Updates…',()=>window.dispatchEvent(new Event('cortex-check-updates'))],['About Cortex',showAbout]],
   };
   const nav=bar.querySelector('.menu-bar');
   for(const [label,items] of Object.entries(menus)){
