@@ -147,17 +147,17 @@ fn validate_git_paths(paths: Vec<String>) -> Result<Vec<String>, String> {
 }
 
 fn detect_package_manager(root: &Path) -> String {
-    if root.join("pnpm-lock.yaml").is_file() { "pnpm" }
+    (if root.join("pnpm-lock.yaml").is_file() { "pnpm" }
     else if root.join("yarn.lock").is_file() { "yarn" }
     else if root.join("bun.lockb").is_file() || root.join("bun.lock").is_file() { "bun" }
-    else { "npm" }.to_string()
+    else { "npm" }).to_string()
 }
 fn classify_task(name: &str) -> String {
     let lower = name.to_ascii_lowercase();
-    if lower == "test" || lower.starts_with("test:") { "test" }
+    (if lower == "test" || lower.starts_with("test:") { "test" }
     else if lower == "build" || lower.starts_with("build:") { "build" }
     else if matches!(lower.as_str(), "dev" | "start" | "serve") { "run" }
     else if lower.contains("lint") || lower.contains("check") || lower.contains("typecheck") { "check" }
-    else { "task" }.to_string()
+    else { "task" }).to_string()
 }
 fn task_rank(kind: &str) -> u8 { match kind { "run" => 0, "test" => 1, "build" => 2, "check" => 3, _ => 4 } }
