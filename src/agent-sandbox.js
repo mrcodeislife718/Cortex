@@ -26,10 +26,12 @@ export class ContainerAgentSandbox {
       '--memory', `${memoryMb}m`,
       '--cpus', String(cpu),
       '--read-only',
-      '--tmpfs', '/tmp:rw,noexec,nosuid,size=128m',
+      '--tmpfs', '/tmp:rw,noexec,nosuid,size=128m,mode=1777',
       '--mount', mount,
       '--workdir', '/workspace',
     ];
+    const hostUser = hostUserSpec();
+    if (hostUser) runtimeArgs.push('--user', hostUser);
     if (!network) runtimeArgs.push('--network', 'none');
     for (const [key, value] of Object.entries(env)) {
       if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) throw new Error(`invalid sandbox environment key: ${key}`);
@@ -73,4 +75,9 @@ export function pickRuntimeEnvironment(source) {
   const output = {};
   for (const key of ['PATH', 'HOME', 'USERPROFILE', 'DOCKER_HOST', 'XDG_RUNTIME_DIR']) if (source[key] !== undefined) output[key] = source[key];
   return output;
+}
+
+export function hostUserSpec() {
+  if (typeof process.getuid !== 'function' || typeof process.getgid !== 'function') return null;
+  return `${process.getuid()}:${process.getgid()}`;
 }
