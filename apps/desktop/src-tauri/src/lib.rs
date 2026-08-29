@@ -1,4 +1,5 @@
 mod protocol_host;
+mod pty;
 mod session;
 mod updater;
 mod workspace_ops;
@@ -102,9 +103,7 @@ fn run_workspace_command(command: String, args: Vec<String>, state: State<'_, Wo
 }
 
 #[tauri::command]
-fn has_commercial_session() -> bool {
-    credential_entry().ok().and_then(|entry| entry.get_password().ok()).is_some()
-}
+fn has_commercial_session() -> bool { credential_entry().ok().and_then(|entry| entry.get_password().ok()).is_some() }
 
 #[tauri::command]
 fn clear_commercial_session() -> Result<(), String> {
@@ -123,9 +122,7 @@ async fn redeem_activation(api_url: String, code: String) -> Result<(), String> 
 }
 
 #[tauri::command]
-async fn commercial_entitlements(api_url: String) -> Result<serde_json::Value, String> {
-    authenticated_json_request(&api_url, "entitlements", reqwest::Method::GET, None).await
-}
+async fn commercial_entitlements(api_url: String) -> Result<serde_json::Value, String> { authenticated_json_request(&api_url, "entitlements", reqwest::Method::GET, None).await }
 
 #[tauri::command]
 async fn commercial_assistant(api_url: String, input: String, context: serde_json::Value) -> Result<serde_json::Value, String> {
@@ -191,6 +188,7 @@ pub fn run() {
         .manage(WorkspaceState(Mutex::new(None)))
         .manage(updater::PendingUpdate::default())
         .manage(protocol_host::ProtocolHost::default())
+        .manage(pty::PtyHost::default())
         .invoke_handler(tauri::generate_handler![
             runtime_info, set_workspace, list_workspace, read_workspace_file, write_workspace_file, search_workspace, git_status, run_workspace_command,
             has_commercial_session, clear_commercial_session, redeem_activation, commercial_entitlements, commercial_assistant,
@@ -198,7 +196,8 @@ pub fn run() {
             workspace_ops::create_workspace_file, workspace_ops::create_workspace_directory, workspace_ops::rename_workspace_entry, workspace_ops::delete_workspace_entry,
             workspace_ops::git_diff, workspace_ops::git_stage, workspace_ops::git_unstage, workspace_ops::git_commit, workspace_ops::discover_project_tasks, workspace_ops::run_project_task,
             session::save_workspace_session, session::restore_workspace_session, session::clear_workspace_session,
-            protocol_host::protocol_start, protocol_host::lsp_request, protocol_host::lsp_notify, protocol_host::dap_request, protocol_host::dap_notify, protocol_host::protocol_take_notifications, protocol_host::protocol_stop
+            protocol_host::protocol_start, protocol_host::lsp_request, protocol_host::lsp_notify, protocol_host::dap_request, protocol_host::dap_notify, protocol_host::protocol_take_notifications, protocol_host::protocol_stop,
+            pty::pty_start, pty::pty_write, pty::pty_read, pty::pty_resize, pty::pty_stop
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Cortex desktop runtime");
