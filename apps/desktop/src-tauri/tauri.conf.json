@@ -29,7 +29,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "createUpdaterArtifacts": true,
+    "createUpdaterArtifacts": false,
     "category": "DeveloperTool",
     "shortDescription": "AI-native systems-aware IDE",
     "longDescription": "Cortex is a developer-first AI-native IDE with system-level engineering intelligence."
