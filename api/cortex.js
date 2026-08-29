@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   try {
     const action = String(req.query?.action ?? 'health');
     if (action === 'health' && req.method === 'GET') return json(res, 200, { ok: true, service: 'cortex-commercial' });
-    if (action === 'config' && req.method === 'GET') return json(res, 200, { oidcIssuer: requiredEnv('OIDC_ISSUER'), oidcClientId: requiredEnv('OIDC_CLIENT_ID'), appUrl: requiredEnv('CORTEX_APP_URL'), releaseUrl: process.env.CORTEX_RELEASE_URL ?? 'https://github.com/mrcodeislife718/Cortex/releases/latest' });
+    if (action === 'config' && req.method === 'GET') return json(res, 200, { oidcIssuer: requiredEnv('OIDC_ISSUER'), oidcClientId: requiredEnv('OIDC_CLIENT_ID'), oidcRedirectUri: requiredEnv('OIDC_REDIRECT_URI'), appUrl: requiredEnv('CORTEX_APP_URL'), releaseUrl: process.env.CORTEX_RELEASE_URL ?? 'https://github.com/mrcodeislife718/Cortex/releases/latest' });
     const runtime = await getRuntime();
     if (action === 'pricing' && req.method === 'GET') return json(res, 200, runtime.pricing());
     if (action === 'session' && req.method === 'POST') { const body = await parseJson(req); return json(res, 200, await runtime.createSession(body.idToken, { nonce: body.nonce ?? null })); }
