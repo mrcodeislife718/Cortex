@@ -2,7 +2,12 @@ name: PostgreSQL State Qualification
 
 on:
   push:
+    branches: [main]
   pull_request:
+
+concurrency:
+  group: postgres-qualification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   postgres-state:
