@@ -50,6 +50,64 @@ export class PerformanceQualification {
   }
 }
 
+export class ComparativeQualification {
+  constructor({ maxEvidenceAgeMs = 30 * 24 * 60 * 60 * 1000, clock = () => Date.now() } = {}) {
+    this.maxEvidenceAgeMs = maxEvidenceAgeMs;
+    this.clock = clock;
+    this.claims = [];
+  }
+
+  compare({ dimension, metric, cortex, competitor, direction = 'lower', minimumImprovementPct = 0, measuredAt = this.clock(), evidence = null } = {}) {
+    if (!dimension || !metric) throw new Error('dimension and metric are required');
+    if (!Number.isFinite(cortex) || !Number.isFinite(competitor)) throw new Error('Cortex and competitor measurements are required');
+    if (!['lower', 'higher'].includes(direction)) throw new Error('direction must be lower or higher');
+    if (!Number.isFinite(minimumImprovementPct) || minimumImprovementPct < 0) throw new Error('minimumImprovementPct must be non-negative');
+    if (!Number.isFinite(measuredAt)) throw new Error('measuredAt must be a timestamp');
+    if (!evidence || typeof evidence !== 'object' || !String(evidence.source ?? '').trim()) throw new Error('comparative evidence source is required');
+
+    const ageMs = Math.max(0, this.clock() - measuredAt);
+    const fresh = ageMs <= this.maxEvidenceAgeMs;
+    const improvementPct = competitor === 0
+      ? (cortex === 0 ? 0 : direction === 'higher' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY)
+      : direction === 'lower'
+        ? ((competitor - cortex) / Math.abs(competitor)) * 100
+        : ((cortex - competitor) / Math.abs(competitor)) * 100;
+    const superior = fresh && improvementPct >= minimumImprovementPct;
+    const result = {
+      dimension,
+      metric,
+      cortex,
+      competitor,
+      direction,
+      minimumImprovementPct,
+      improvementPct,
+      fresh,
+      measuredAt,
+      evidence: clone(evidence),
+      status: superior ? 'SUPERIOR' : fresh ? 'NOT_SUPERIOR' : 'STALE_EVIDENCE',
+    };
+    this.claims.push(result);
+    return clone(result);
+  }
+
+  evaluate({ requiredDimensions = [] } = {}) {
+    const latest = new Map();
+    for (const claim of this.claims) latest.set(`${claim.dimension}:${claim.metric}`, claim);
+    const claims = [...latest.values()];
+    const coveredDimensions = new Set(claims.filter((claim) => claim.status === 'SUPERIOR').map((claim) => claim.dimension));
+    const missingDimensions = requiredDimensions.filter((dimension) => !coveredDimensions.has(dimension));
+    const stale = claims.filter((claim) => claim.status === 'STALE_EVIDENCE');
+    const notSuperior = claims.filter((claim) => claim.status === 'NOT_SUPERIOR');
+    return {
+      ok: missingDimensions.length === 0 && stale.length === 0 && notSuperior.length === 0,
+      claims: clone(claims),
+      missingDimensions,
+      stale: clone(stale),
+      notSuperior: clone(notSuperior),
+    };
+  }
+}
+
 export class DeadWeightAuditor {
   constructor({ maxAlwaysOn = 8, maxBackgroundProcesses = 6, maxDuplicateContributions = 0 } = {}) {
     this.maxAlwaysOn = maxAlwaysOn;
