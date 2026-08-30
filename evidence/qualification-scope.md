@@ -1,0 +1,1 @@
+Repository tests, packaged desktop interaction tests, comparative benchmarks and external production proofs are separate evidence classes. Cortex may aggregate them, but it may not substitute one class for another when the contract requires a specific class.
