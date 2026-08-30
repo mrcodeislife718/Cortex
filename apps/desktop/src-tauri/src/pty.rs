@@ -36,9 +36,9 @@ struct OutputBuffer {
 }
 
 #[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct PtySessionInfo {
-    session_id: String,
+    id: String,
+    #[serde(rename = "processId")]
     process_id: Option<u32>,
     rows: u16,
     cols: u16,
@@ -63,24 +63,24 @@ pub fn pty_start(rows: Option<u16>, cols: Option<u16>, workspace: State<'_, Work
     let writer = pair.master.take_writer().map_err(|error| format!("PTY writer unavailable: {error}"))?;
     let output = Arc::new(Mutex::new(OutputBuffer::default()));
     spawn_reader(reader, Arc::clone(&output));
-    let session_id = format!("pty-{}", PTY_COUNTER.fetch_add(1, Ordering::Relaxed));
+    let id = format!("pty-{}", PTY_COUNTER.fetch_add(1, Ordering::Relaxed));
     let session = Arc::new(PtySession { master: Mutex::new(pair.master), writer: Mutex::new(writer), child: Mutex::new(child), output });
-    host.sessions.lock().map_err(|_| "PTY host poisoned")?.insert(session_id.clone(), session);
-    Ok(PtySessionInfo { session_id, process_id, rows, cols })
+    host.sessions.lock().map_err(|_| "PTY host poisoned")?.insert(id.clone(), session);
+    Ok(PtySessionInfo { id, process_id, rows, cols })
 }
 
 #[tauri::command]
-pub fn pty_write(session_id: String, data: String, host: State<'_, PtyHost>) -> Result<(), String> {
+pub fn pty_write(id: String, data: String, host: State<'_, PtyHost>) -> Result<(), String> {
     if data.len() > MAX_WRITE_BYTES { return Err("PTY write exceeds Cortex limit".into()); }
-    let session = get_session(&host, &session_id)?;
+    let session = get_session(&host, &id)?;
     let mut writer = session.writer.lock().map_err(|_| "PTY writer poisoned")?;
     writer.write_all(data.as_bytes()).map_err(|error| error.to_string())?;
     writer.flush().map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-pub fn pty_read(session_id: String, max_bytes: Option<usize>, host: State<'_, PtyHost>) -> Result<String, String> {
-    let session = get_session(&host, &session_id)?;
+pub fn pty_read(id: String, max_bytes: Option<usize>, host: State<'_, PtyHost>) -> Result<String, String> {
+    let session = get_session(&host, &id)?;
     let mut output = session.output.lock().map_err(|_| "PTY output poisoned")?;
     let limit = max_bytes.unwrap_or(256 * 1024).clamp(1, 1024 * 1024);
     let mut collected = Vec::with_capacity(limit.min(output.bytes));
@@ -99,34 +99,29 @@ pub fn pty_read(session_id: String, max_bytes: Option<usize>, host: State<'_, Pt
 }
 
 #[tauri::command]
-pub fn pty_resize(session_id: String, rows: u16, cols: u16, host: State<'_, PtyHost>) -> Result<(), String> {
-    let session = get_session(&host, &session_id)?;
-    let result = {
-        let master = session.master.lock().map_err(|_| "PTY master poisoned")?;
-        master
-            .resize(PtySize {
-                rows: rows.clamp(2, 500),
-                cols: cols.clamp(10, 1_000),
-                pixel_width: 0,
-                pixel_height: 0,
-            })
-            .map_err(|error| error.to_string())
-    };
-    result
+pub fn pty_resize(id: String, rows: u16, cols: u16, host: State<'_, PtyHost>) -> Result<(), String> {
+    let session = get_session(&host, &id)?;
+    let master = session.master.lock().map_err(|_| "PTY master poisoned")?;
+    master.resize(PtySize {
+        rows: rows.clamp(2, 500),
+        cols: cols.clamp(10, 1_000),
+        pixel_width: 0,
+        pixel_height: 0,
+    }).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-pub fn pty_stop(session_id: String, host: State<'_, PtyHost>) -> Result<(), String> {
-    let session = host.sessions.lock().map_err(|_| "PTY host poisoned")?.remove(&session_id).ok_or("unknown PTY session")?;
+pub fn pty_stop(id: String, host: State<'_, PtyHost>) -> Result<(), String> {
+    let session = host.sessions.lock().map_err(|_| "PTY host poisoned")?.remove(&id).ok_or("unknown PTY session")?;
     let mut child = session.child.lock().map_err(|_| "PTY child poisoned")?;
     let _ = child.kill();
     let _ = child.wait();
     Ok(())
 }
 
-fn get_session(host: &State<'_, PtyHost>, session_id: &str) -> Result<Arc<PtySession>, String> {
-    if session_id.trim().is_empty() { return Err("PTY session id is required".into()); }
-    host.sessions.lock().map_err(|_| "PTY host poisoned")?.get(session_id).cloned().ok_or_else(|| "unknown PTY session".into())
+fn get_session(host: &State<'_, PtyHost>, id: &str) -> Result<Arc<PtySession>, String> {
+    if id.trim().is_empty() { return Err("PTY session id is required".into()); }
+    host.sessions.lock().map_err(|_| "PTY host poisoned")?.get(id).cloned().ok_or_else(|| "unknown PTY session".into())
 }
 
 fn spawn_reader(mut reader: Box<dyn Read + Send>, output: Arc<Mutex<OutputBuffer>>) {
