@@ -1,0 +1,1 @@
+This branch replaces the packaged desktop's competing interaction owners with one authoritative workbench runtime and locks the complete Cortex product/superiority target into executable qualification. It intentionally does not claim the whole product is complete until packaged interaction, comparative, commercial and external-platform evidence exists.
