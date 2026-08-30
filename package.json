@@ -41,7 +41,7 @@
     "./performance": "./src/performance-qualification.js"
   },
   "scripts": {
-    "test": "node --test test/cortex.test.js test/platform-foundation.test.js test/system-ingestion.test.js test/developer-platform.test.js test/extension-process-host.test.js test/product-closure.test.js test/security-compatibility.test.js test/identity-cost-extension.test.js test/assistant-adversarial.test.js test/commercial-runtime.test.js test/model-providers.test.js test/architecture-superiority.test.js test/software-factory.test.js",
+    "test": "node --test test/cortex.test.js test/platform-foundation.test.js test/system-ingestion.test.js test/developer-platform.test.js test/extension-process-host.test.js test/product-closure.test.js test/security-compatibility.test.js test/identity-cost-extension.test.js test/assistant-adversarial.test.js test/commercial-runtime.test.js test/model-providers.test.js test/architecture-superiority.test.js test/software-factory.test.js test/engineering-runtime-software-factory.test.js",
     "test:ecosystem": "node --test test/ecosystem-process.test.mjs",
     "qualify:architecture": "node scripts/qualify-architecture-superiority.mjs",
     "qualify:workbench": "node scripts/qualify-interactive-workbench.mjs",
