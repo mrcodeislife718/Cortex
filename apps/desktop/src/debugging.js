@@ -33,7 +33,7 @@ async function injectDebugControls() {
     const options = configs.length
       ? configs.map((config, index) => `<option value="${index}">${escapeHtml(config.name ?? `${config.type ?? 'DAP'} configuration`)}</option>`).join('')
       : '<option value="">No launch configurations</option>';
-    section.innerHTML = `<div class="debug-launch-row"><select id="debug-configuration">${options}</select><button id="debug-start" title="Start Debugging (F5)">▷</button></div><div class="debug-toolbar"><button data-debug="continue" title="Continue">▶</button><button data-debug="pause" title="Pause">Ⅱ</button><button data-debug="next" title="Step Over (F10)">↷</button><button data-debug="stepIn" title="Step Into (F11)">↓</button><button data-debug="stepOut" title="Step Out (Shift+F11)">↑</button><button id="debug-breakpoint" title="Add Breakpoint (F9)">●</button><button data-debug="disconnect" title="Stop">■</button></div><div id="debug-state" class="debug-state">${debugSession ? 'Debug session active' : configs.length ? 'Ready to debug' : 'Add .vscode/launch.json or a Cortex DAP adapter.'}</div>`;
+    section.innerHTML = `<div class="debug-launch-row"><select id="debug-configuration">${options}</select><button id="debug-start" title="Start Debugging (F5)">▷</button></div><div class="debug-toolbar"><button data-debug="continue" title="Continue">▶</button><button data-debug="pause" title="Pause">Ⅱ</button><button data-debug="next" title="Step Over (F10)">↷</button><button data-debug="stepIn" title="Step Into (F11)">↓</button><button data-debug="stepOut" title="Step Out (Shift+F11)">↑</button><button id="debug-breakpoint" title="Toggle breakpoint at cursor (F9)">●</button><button data-debug="disconnect" title="Stop">■</button></div><div id="debug-state" class="debug-state">${debugSession ? 'Debug session active' : configs.length ? 'Ready to debug' : 'Add .vscode/launch.json or a Cortex DAP adapter.'}</div>`;
     side.prepend(section);
     section.querySelector('#debug-start').onclick = () => {
       const value = section.querySelector('#debug-configuration').value;
@@ -124,12 +124,13 @@ async function stopDebug() {
 function addBreakpoint() {
   const path = window.cortexWorkbench?.getActivePath?.();
   if (!path) { showDebugOutput('Open a source file before adding a breakpoint.'); return; }
-  const line = Number(prompt(`Breakpoint line in ${path}`, '1'));
-  if (!Number.isInteger(line) || line <= 0) return;
+  const cursor = document.getElementById('cursor-position')?.textContent?.match(/Ln\s+(\d+)/i);
+  const line = Number(cursor?.[1]);
+  if (!Number.isInteger(line) || line <= 0) { showDebugOutput('Place the editor cursor on the line where you want a breakpoint.'); return; }
   const lines = breakpoints.get(path) ?? new Set();
   if (lines.has(line)) lines.delete(line); else lines.add(line);
   if (lines.size) breakpoints.set(path, lines); else breakpoints.delete(path);
-  setDebugState(`${[...breakpoints.values()].reduce((sum, values) => sum + values.size, 0)} breakpoint(s)`);
+  setDebugState(`${[...breakpoints.values()].reduce((sum, values) => sum + values.size, 0)} breakpoint(s) · ${path}:${line}`);
   if (debugSession) void sendBreakpoints(path);
 }
 

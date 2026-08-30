@@ -27,6 +27,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
       - uses: dtolnay/rust-toolchain@stable
       - name: Cache Rust registry and build output
         uses: actions/cache@v4
@@ -35,27 +37,29 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             apps/desktop/src-tauri/target
-          key: cortex-desktop-${{ runner.os }}-cargo-${{ hashFiles('apps/desktop/src-tauri/Cargo.toml') }}
+          key: cortex-desktop-${{ runner.os }}-cargo-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock', 'apps/desktop/src-tauri/Cargo.toml') }}
           restore-keys: |
             cortex-desktop-${{ runner.os }}-cargo-
       - name: Install Linux Tauri dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-      - name: Install desktop dependencies
+      - name: Install locked desktop dependencies
         working-directory: apps/desktop
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Generate Cortex platform icons
         working-directory: apps/desktop
         run: npm run tauri -- icon assets/cortex-app-icon.svg
       - name: Build web workbench
         working-directory: apps/desktop
         run: npm run build
-      - name: Check Rust desktop runtime
+      - name: Check locked Rust desktop runtime
         working-directory: apps/desktop/src-tauri
-        run: cargo check
+        run: cargo check --locked
       - name: Build installable Cortex package
         working-directory: apps/desktop
-        run: npm run tauri -- build --bundles "${{ matrix.bundles }}"
+        env:
+          CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+        run: npm run tauri -- build --bundles "${{ matrix.bundles }}" -- --locked
       - name: Upload Linux packages
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4

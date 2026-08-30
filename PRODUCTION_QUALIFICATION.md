@@ -1,82 +1,73 @@
 # Cortex Production Qualification Ledger
 
-This document is intentionally conservative. `PASS` means exercised by executable evidence. `UNVERIFIED` means the capability is specified or partially implemented but lacks production-grade proof. Cortex must not be called production qualified while any launch BLOCKER remains.
+This ledger is intentionally conservative. `PASS` means the named property has executable repository evidence on a qualifying commit. `PARTIAL` means meaningful production implementation exists but an important integration, external dependency, operating-system boundary, scale target, or live-service proof remains. `UNVERIFIED` means the repository does not yet contain sufficient evidence. A usable desktop build does not by itself mean the complete commercial service is production qualified.
 
 ## Repository truth
 
-The current repository began as a compact JavaScript architectural prototype. Existing verified concepts include workspace/document editing, LSP client integration, diagnostics, symbol graph, process-backed terminal/Git/debugging, provenance, ecosystem panels, Cannon+ memory inspection abstractions, AI edit review gating, and release-controller integration tests.
+Cortex is now a native desktop IDE built with Tauri 2, Rust services, Monaco, and Cortex-owned engineering/runtime services rather than an Electron or VS Code fork. The workbench provides folder opening, Explorer CRUD, multi-tab editing, split editors, save/recovery, workspace search, Git status/diff/stage/unstage/commit, project task discovery/execution, a native PTY terminal, LSP-backed language intelligence, DAP debugging, command palette/settings/themes, live diagnostics, update integration, commercial activation, and the Cortex assistant surface.
 
-The system-aware foundation adds a Cortex System Graph, deny-by-default capability security, prompt/secret boundaries, model routing/failover, engineering task graphs, agent evidence ledger, qualification gates, integrity-checked atomic persistence, project memory, recovery journals, premium entitlements/usage metering, and structured metrics/tracing/logging.
+The platform layer contains the Cortex System Graph, repository ingestion, language/runtime/Git/test/infrastructure/deployment evidence ingestors, deny-by-default capability security, prompt/secret boundaries, assistant orchestration, model routing/failover, engineering tools/evidence, agent sandboxing, extension process isolation and package verification, persistence/recovery, PostgreSQL state, commercial identity/billing/activation, cost controls, privacy controls, telemetry exporters, update verification/rollback, remote execution adapters, and performance/dead-weight qualification.
 
-Automatic repository-to-System-Graph ingestion now walks JavaScript/TypeScript-family workspaces, excludes build/vendor directories, fingerprints file content, records package metadata and dependency declarations, extracts ESM/CommonJS/dynamic module references, resolves internal imports, and attaches provenance to derived graph facts.
-
-The developer-first tranche adds a readable System Graph facade, intent-based Assistant Orchestrator, and native Extension Platform foundation. The assistant selects assistance depth without forcing user-facing Ask/Plan/Agent/Debug modes. Native extension manifests declare runtime, activation events, capabilities and execution level; activation integrates with the Security Kernel; runtime mismatches are denied; health is inspectable; repeated activation failures quarantine the extension.
+Desktop dependency resolution is reproducible through committed npm `package-lock.json` and Rust `Cargo.lock`. Desktop qualification uses `npm ci`, `cargo check --locked`, cached Rust build state, and real Tauri installer builds across Linux, Windows, and macOS.
 
 ## Closure audit
 
-| Severity | Area | Status | Finding / gate |
+| Severity | Area | Status | Repository-backed boundary |
 |---|---|---|---|
-| BLOCKER | Desktop UI/workbench | UNVERIFIED | No complete desktop IDE shell/editor workbench exists yet. The VS Code-familiar workbench contract is now explicit. |
-| BLOCKER | Packaging/install/update | UNVERIFIED | No signed Windows/macOS/Linux desktop distribution or updater/rollback proof. |
-| BLOCKER | Full IDE workflows | UNVERIFIED | Search, splits, settings, keymaps, test explorer, package/toolchain UI and remote development are not complete products. |
-| BLOCKER | Real authentication/billing | UNVERIFIED | Entitlement domain exists; identity, checkout, invoices, webhooks, durable subscription persistence and account lifecycle are not integrated. |
-| CRITICAL | Agent sandbox | UNVERIFIED | Capability policy exists; OS/container sandbox enforcement is not yet integrated. |
-| CRITICAL | Extension sandbox | UNVERIFIED | Extension capabilities/runtime declarations are enforced at policy level; process/OS sandbox enforcement is still required. |
-| CRITICAL | Prompt injection | PARTIAL | Repository content is classified as data and suspicious patterns can be identified; adversarial end-to-end agent tests remain required. |
-| CRITICAL | Durable state | PARTIAL | Integrity-checked atomic local state exists; database-backed team/cloud state, migrations, backup/restore and concurrency controls remain. |
-| CRITICAL | System Graph | PARTIAL | Automatic source/package/import ingestion and developer-facing graph queries are implemented/tested. Language-semantic, runtime, Git-history, test, infra and deployment ingestion remain. |
-| HIGH | Assistant orchestration | PARTIAL | Intent classification, automatic depth selection, context-source selection and specialist routing are tested. Real tool execution, model integration, cancellation, recovery and end-to-end qualification remain. |
-| HIGH | Model Fabric | PARTIAL | Provider abstraction and failover exist; production adapters, timeouts, rate limits, streaming, cost budgets and malformed-response contracts remain. |
-| HIGH | Observability | PARTIAL | Metrics, traces and redacted structured logging exist; exporters, dashboards, crash reporting and SLOs remain. |
-| HIGH | Recovery | PARTIAL | Recovery journal exists; unsaved-buffer/session restoration and crash/fault tests remain. |
-| HIGH | Performance | UNVERIFIED | 10K/100K/1M file, startup, typing, indexing, memory, extension and AI latency benchmarks remain. |
-| HIGH | Extension compatibility | PARTIAL | Native extension lifecycle/security foundation exists. Real VS Code API compatibility, marketplace ingestion, third-party extension corpus tests, process isolation, transactional upgrade/rollback and resource accounting remain. |
-| HIGH | Remote execution | UNVERIFIED | SSH/container/VM/cloud workspace implementation remains. |
-| MEDIUM | Cost controls | PARTIAL | Usage metering exists; provider budgets, caching and account quotas remain. |
-| MEDIUM | Privacy | PARTIAL | Secret boundary and logging redaction exist; data export/deletion/retention and hosted-processing controls remain. |
-| MEDIUM | Documentation | PARTIAL | README, authoritative architecture and qualification ledger exist; user/admin/API/runbook docs remain. |
+| BLOCKER | Desktop UI/workbench | PASS | Native Tauri/Monaco workbench builds and packages; core editing, Explorer, search, Git, task, terminal, debugging, settings, recovery and Problems workflows are implemented. |
+| HIGH | Packaging/install | PASS | Desktop Qualification builds Linux `.deb`/AppImage, Windows MSI/NSIS and macOS DMG artifacts. |
+| HIGH | Commercial signing/notarization | PARTIAL | Updater signing hooks and bundle configuration exist; Apple notarization and Windows trust-chain proof require real external signing authorities/credentials. |
+| HIGH | Full IDE workflows | PARTIAL | Core daily development is usable. A fully integrated desktop extension manager, broader test explorer/toolchain UI and remote-development UX remain below the target product depth. |
+| HIGH | Authentication/billing | PARTIAL | OIDC PKCE/JWKS verification, signed sessions, Stripe checkout/portal/webhook verification, durable subscriptions, activation codes and entitlements are implemented/tested; live production deployment with owned provider credentials remains external evidence. |
+| CRITICAL | Agent sandbox | PASS | Docker/Podman qualification exercises no-new-privileges, capability dropping, resource limits, read-only rootfs/workspace defaults and network-deny defaults. |
+| CRITICAL | Extension sandbox | PARTIAL | Extensions have capability policy, process isolation, time/output/memory budgets, quarantine, signed-package verification and transactional rollback. Arbitrary third-party extensions do not yet have a proven OS-level filesystem/network sandbox equivalent to the agent sandbox. |
+| CRITICAL | Prompt/secret boundary | PASS | Repository/tool content is treated as untrusted data, secrets are excluded from automatic model context, context release policies reject secret-shaped data, and adversarial tests exercise injection boundaries. |
+| CRITICAL | Durable state | PASS | PostgreSQL qualification exercises migrations, persistence, optimistic concurrency and backup/restore/rollback paths; local integrity-checked state remains available for desktop/session state. |
+| CRITICAL | System Graph | PARTIAL | Source/package/import ingestion plus language semantic, runtime, Git, test, infrastructure and deployment evidence ingestors are implemented/tested. Continuous live population of every evidence class from the desktop remains incomplete. |
+| HIGH | Assistant orchestration | PARTIAL | Intent routing, approval boundaries, hosted model integration, bounded repository/editor/Git/diagnostic context and engineering-runtime tool/evidence infrastructure exist. The commercial desktop path does not yet expose the complete autonomous EngineeringRuntime tool loop to the user. |
+| HIGH | Model Fabric | PASS | OpenAI/Anthropic/Gemini adapters, model independence, timeout/retry/backoff, circuit breaking, response validation, usage/cost accounting and per-request/monthly budgets are implemented/tested. Live-provider availability depends on configured provider credentials. |
+| HIGH | Observability | PARTIAL | Metrics/tracing/redacted logs and telemetry exporters exist; production dashboards, crash-reporting service and operational SLO proof require deployed infrastructure. |
+| HIGH | Recovery | PASS | Unsaved buffers/workspace sessions restore durably; model/provider failure isolation, LSP/DAP/PTY process isolation and transactional update rollback mechanisms are implemented. |
+| HIGH | Performance | PARTIAL | Performance and dead-weight gates are executable and architecture superiority requires evidence. Full standardized 10K/100K/1M repository benchmark evidence is not yet complete. |
+| HIGH | Extension compatibility | PARTIAL | VS Code manifest translation, native extension lifecycle/security, process isolation, signatures and transactional install/rollback exist. A production desktop manager/marketplace and broad third-party compatibility corpus remain. |
+| HIGH | Remote execution | PARTIAL | Shell-free SSH and container execution adapters are implemented/tested. Integrated remote workspace UX, connection lifecycle and fault qualification remain. |
+| MEDIUM | Cost controls | PASS | Provider pricing, usage metering, per-request budgets, plan-level monthly budgets and durable usage accounting are implemented/tested. |
+| MEDIUM | Privacy | PASS | Secret boundaries, redaction, hosted-processing/context-release policy and privacy controls are implemented; jurisdiction-specific production policy remains deployment configuration. |
+| MEDIUM | Documentation | PARTIAL | Architecture, superiority contract, repository docs and this qualification ledger exist; end-user/admin/commercial operations documentation still needs expansion. |
 
 ## Executable evidence
 
-`npm run check` performs JavaScript syntax validation plus the deterministic local Node test suite.
+The repository qualification suite includes:
 
-Platform evidence verifies:
+- Cortex CI and architecture-superiority contract validation;
+- Portfolio Proof and ecosystem process qualification;
+- Agent Sandbox Qualification;
+- PostgreSQL State Qualification;
+- Desktop Qualification on Linux, Windows and macOS;
+- System Graph ingestion/traversal/evidence tests;
+- assistant routing, adversarial prompt-boundary and model-provider tests;
+- extension policy/process/package/signature/rollback tests;
+- commercial runtime, OIDC/session/Stripe/activation/cost tests;
+- persistence, recovery, update-signature/rollback, privacy and telemetry tests;
+- remote execution command-spec tests;
+- performance/dead-weight regression gates.
 
-- cross-layer graph traversal and snapshot restore;
-- developer-facing project overview, dependency/dependent and impact-query contracts;
-- capability denial and privilege-escalation denial;
-- secret access denial without authority;
-- repository prompt content treated as data;
-- model-provider failover;
-- engineering task evidence requirements;
-- agent event/evidence ledger behavior;
-- atomic project-memory persistence and recovery checkpoints;
-- absence of a free production plan and premium entitlement enforcement;
-- metrics, tracing and sensitive-field redaction;
-- real temporary-workspace ingestion of files, hashes, package declarations, internal imports, external dependencies and provenance;
-- exclusion of `node_modules` from graph ingestion;
-- ESM, re-export, dynamic-import and CommonJS module-specifier extraction;
-- automatic assistant escalation from explanation/change requests to full engineering depth for high-risk or multi-step work;
-- assistant selection of runtime/deployment/Git context for production-failure investigation;
-- lazy extension activation from declared events;
-- extension capability denial without an authorized Security Kernel token;
-- extension runtime-class enforcement;
-- extension health accounting and automatic quarantine after repeated failures.
-
-Existing integration workflows continue to exercise real ecosystem process boundaries against first-party repositories rather than replacing those contracts with mocks.
+Desktop Qualification specifically requires the committed npm and Cargo lockfiles, uses `npm ci`, checks Rust with `cargo check --locked`, performs the web build, compiles the optimized native Tauri application and uploads installer artifacts.
 
 ## Independent qualification state
 
-Installation/dependency integrity: PARTIAL — dependency-free Node package installs trivially, desktop installation does not yet exist.
+Installation/dependency integrity: **PASS** for repository dependency locks and qualified desktop installer generation.
 
-Syntax checking: PASS when `npm run check:syntax` succeeds in CI.
+Core syntax/unit/integration qualification: **PASS** only for commits where the required GitHub Actions lanes succeed on that exact commit.
 
-Unit/integration tests: PASS only when `npm test` and the dedicated ecosystem proof workflows succeed on the candidate commit.
+Desktop daily-use readiness: **PASS for the implemented core workbench**, with the remaining product-depth items identified above rather than hidden behind a blanket desktop blocker.
 
-Authentication, billing provider, hosted persistence, migrations, backup/restore, desktop E2E, load, OS-level agent/extension sandboxing, deployment packages, updater and rollback: UNVERIFIED.
+Commercial production readiness: **PARTIAL**. Real service deployment, owned OIDC/Stripe/model/database credentials, external code-signing/notarization, production operational dashboards/SLOs, the complete extension marketplace/OS sandbox boundary, and broader scale evidence cannot be inferred from repository tests alone.
 
 ## Launch gate
 
-**NOT PRODUCTION QUALIFIED.** The foundation is materially stronger, but launch remains blocked by the desktop product, real commercial account/billing integration, OS-enforced agent and extension sandboxing, full persistence/cloud architecture, packaging/update/recovery, performance qualification, real extension compatibility evidence, and end-to-end adversarial verification.
+**CORTEX DESKTOP IS USABLE AND PACKAGE-QUALIFIED; THE COMPLETE COMMERCIAL SERVICE IS NOT YET FULLY PRODUCTION QUALIFIED.**
 
-No future change may convert an `UNVERIFIED` requirement into `PASS` without executable or externally inspectable evidence.
+The remaining launch boundaries are explicit: live commercial infrastructure/credentials, platform signing/notarization, OS-level third-party extension containment plus usable extension-manager/marketplace integration, deeper remote-development UX, full-scale performance evidence, and deployed operational verification.
+
+No future change may convert a `PARTIAL` or `UNVERIFIED` requirement into `PASS` without executable or externally inspectable evidence.
