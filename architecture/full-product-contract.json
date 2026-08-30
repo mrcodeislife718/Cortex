@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "product": "Cortex",
   "thesis": "A verifiable software factory disguised as an easy-to-use IDE.",
   "baseline": [
@@ -11,21 +11,46 @@
   ],
   "userExperience": {
     "principle": "power-underneath-simplicity-on-top",
-    "entry": "Open Cortex. Open a repository. Start working.",
+    "entry": "Open Cortex. Open an existing repository or create a new project from scratch. Start working.",
     "intentExample": "Fix this.",
     "forbiddenModeBurden": ["Ask", "Plan", "Agent", "Debug"]
   },
+  "projectLifecycle": {
+    "rule": "Cortex must never require an existing repository. Greenfield creation and existing-project development are equally first-class.",
+    "existingProject": [
+      "open-folder", "open-repository", "clone-repository", "workspace-trust", "detect-toolchain", "detect-tasks", "detect-debuggers", "detect-version-control"
+    ],
+    "greenfieldProject": [
+      "new-empty-folder", "new-file", "new-directory", "save-as", "initialize-git", "clone-into-workspace", "open-terminal", "run-scaffolding-command", "select-or-detect-runtime", "install-dependencies", "run-task", "debug", "test", "commit", "push", "build", "package", "deploy-assistance"
+    ],
+    "editingBaseline": [
+      "multi-file-tabs", "split-editors", "undo-redo", "cut-copy-paste", "find-replace", "workspace-search-replace", "go-to-file", "go-to-symbol", "go-to-definition", "references", "rename", "format", "diagnostics", "code-actions", "autocomplete", "snippets", "breadcrumbs", "minimap", "folding", "multi-cursor", "column-selection", "encoding-and-line-endings", "autosave", "hot-exit-recovery"
+    ],
+    "developerToolsBaseline": [
+      "integrated-pty-terminal", "multiple-terminals", "tasks", "test-explorer", "problems", "output", "debug-console", "breakpoints", "conditional-breakpoints", "watch", "variables", "call-stack", "source-control", "diff", "stage", "unstage", "commit", "branches", "merge", "rebase", "fetch", "pull", "push", "history", "stash", "tags", "remotes"
+    ],
+    "configurationBaseline": [
+      "settings", "workspace-settings", "keyboard-shortcuts", "themes", "language-configuration", "extension-management", "command-palette", "profiles-or-equivalent-portable-configuration"
+    ],
+    "nonRegressionRule": "Cortex superiority work may add capabilities or replace internals, but may not remove ordinary professional IDE functionality required to build a project from an empty directory through source control, testing, debugging, packaging and deployment."
+  },
   "completionAreas": [
+    "greenfield-project-creation",
+    "existing-project-and-repository-opening",
+    "complete-professional-editor-baseline",
+    "file-and-workspace-lifecycle",
     "real-repository-qualification",
     "terminal-and-task-execution",
     "language-intelligence",
     "git-workflow",
     "debugger",
+    "testing-workflow",
     "cortex-intelligence",
     "agent-execution",
     "extensions",
     "system-graph",
     "remote-and-container-development",
+    "build-package-and-deploy-workflow",
     "performance-and-low-memory-qualification",
     "security-qualification",
     "desktop-polish",
@@ -84,6 +109,9 @@
   "proofRule": "No superiority or completion claim is PASS without executable, externally inspectable, or measured comparative evidence.",
   "scaleRule": ["1x", "10x", "100x", "success-too-well"],
   "finalGate": [
-    "fresh-machine", "download", "install", "authenticate", "open-repository", "edit", "save", "terminal", "git", "debug", "ai-task", "agent-change", "tests", "commit", "restart", "restore", "update"
+    "fresh-machine", "download", "install", "authenticate",
+    "create-empty-project", "create-file", "create-directory", "save-as", "initialize-git", "scaffold-project", "install-dependencies",
+    "open-repository", "clone-repository", "edit", "save", "search-replace", "terminal", "tasks", "tests", "git", "debug", "extensions",
+    "ai-task", "agent-change", "build", "package", "deploy-assistance", "commit", "push", "restart", "restore", "update"
   ]
 }
