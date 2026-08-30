@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "product": "Cortex",
+  "northStar": "VS Code familiarity + Cursor-class AI coding + Replit-class general assistance + JetBrains-class semantic intelligence + Zed-class responsiveness + Cortex system-level understanding and verification",
+  "systemChain": ["source", "symbols", "dependencies", "build", "runtime", "memory", "data", "network", "infrastructure", "deployment", "production-behavior"],
+  "principles": [
+    "compatibility-at-the-edge-independent-internals",
+    "ai-proposes-evidence-and-policy-authorize",
+    "intent-first-no-artificial-ai-modes",
+    "capability-separated-from-authority",
+    "system-graph-is-foundational",
+    "model-independent-by-default",
+    "local-failure-not-global-failure",
+    "power-underneath-simplicity-on-top",
+    "technical-superiority-requires-comparative-evidence"
+  ],
+  "competitors": [
+    {
+      "name": "VS Code",
+      "strengths": ["familiar workbench", "large extension ecosystem", "lazy extension activation", "local/web/remote extension hosts", "LSP/DAP ecosystem"],
+      "weaknesses": ["extension authority remains broad once installed", "Node/Electron runtime overhead", "extension performance and configuration burden can accumulate", "remote client/server version coupling"],
+      "preserveOrExceed": ["workbench familiarity", "ecosystem reach", "lazy activation", "remote execution", "protocol interoperability"],
+      "structurallyEliminate": ["ambient extension authority", "unattributed extension resource cost", "single-runtime assumptions", "hidden permission expansion"],
+      "sources": ["https://code.visualstudio.com/api/advanced-topics/extension-host", "https://code.visualstudio.com/api/advanced-topics/remote-extensions"]
+    },
+    {
+      "name": "Cursor",
+      "strengths": ["agentic coding", "model orchestration", "sandboxed local execution", "dedicated VM cloud agents", "proof artifacts for cloud work"],
+      "weaknesses": ["cloud-agent dependence for strongest isolation", "provider/service dependence", "approval fatigue remains a documented agent problem", "editor foundation inherits VS Code lineage"],
+      "preserveOrExceed": ["autonomous coding", "sandboxing", "model routing", "proof of completed work"],
+      "structurallyEliminate": ["cloud-only deep autonomy", "model lock-in", "mode-selection burden", "unverified agent authority"],
+      "sources": ["https://cursor.com/docs/agent/overview", "https://prod.cursor.com/docs/agent/security/run-modes", "https://prod.cursor.com/help/ai-features/background-agents"]
+    },
+    {
+      "name": "JetBrains",
+      "strengths": ["deep PSI semantic model", "project analysis", "refactoring", "navigation and inspections", "mature language intelligence"],
+      "weaknesses": ["heavy project analysis can increase startup/resource cost", "platform complexity", "semantic depth is tightly coupled to IDE/language implementations"],
+      "preserveOrExceed": ["semantic correctness", "refactoring safety", "instant navigation after analysis"],
+      "structurallyEliminate": ["monolithic analysis coupling", "non-rebuildable derived state", "always-on heavy analysis"],
+      "sources": ["https://plugins.jetbrains.com/docs/intellij/psi.html", "https://www.jetbrains.com/help/idea/project-analysis.html"]
+    },
+    {
+      "name": "Zed",
+      "strengths": ["Rust-native performance focus", "WASM extension isolation", "LSP-based language support", "lean extension contribution model"],
+      "weaknesses": ["smaller ecosystem than VS Code", "extension capability surface intentionally narrower", "language/debug tooling often depends on external binaries"],
+      "preserveOrExceed": ["responsiveness", "native efficiency", "isolated extension execution"],
+      "structurallyEliminate": ["ecosystem reach limitation", "manual external-tool friction where safe acquisition is possible"],
+      "sources": ["https://zed.dev/docs/extensions/developing-extensions", "https://zed.dev/docs/extensions/publishing/prerequisites"]
+    },
+    {
+      "name": "Replit",
+      "strengths": ["general assistance spanning code and environment", "integrated execution and deployment", "low-friction project startup"],
+      "weaknesses": ["hosted-environment dependence", "infrastructure coupling", "local-first professional IDE depth is not its core architecture"],
+      "preserveOrExceed": ["general assistance", "execution integration", "deployment simplicity"],
+      "structurallyEliminate": ["hosted lock-in", "mandatory cloud execution", "environment ownership ambiguity"],
+      "sources": ["https://replit.com/ai"]
+    }
+  ],
+  "innovations": [
+    {
+      "id": "native-desktop-fabric",
+      "purpose": "Deliver a familiar professional workbench without inheriting an Electron/VS Code runtime as Cortex core architecture.",
+      "mechanism": "Tauri desktop shell, system WebView, Monaco editing surface, Rust native workspace/protocol/security/terminal services, and isolated child services.",
+      "expectedAdvantage": "Lower idle memory and package overhead, stronger native service boundaries, and freedom to evolve internals independently of VS Code.",
+      "tradeoff": "WebView behavior varies by platform and some Node-first integrations require adapters.",
+      "failureMode": "Cross-platform WebView or native integration divergence causes reliability regressions that erase the efficiency advantage.",
+      "measurementMethod": "Compare cold start, warm start, idle RSS, active RSS, package size, crash rate, editor latency and terminal latency against Electron baseline and leading IDEs.",
+      "benchmark": {"coldStartP95Ms": 1800, "idleRssMb": 450, "keystrokeP95Ms": 16, "terminalEchoP95Ms": 25},
+      "fallback": "Maintain a benchmarked Electron reference shell and switch only if reliability/productivity wins outweigh measured resource penalties.",
+      "validationExperiment": "Run identical 10K/100K/1M-file workspaces on Linux, Windows and macOS with clean profiles and record startup, memory, latency, crash and packaging metrics.",
+      "scale": {"1x": "Single repository and normal local tooling.", "10x": "Large monorepo with several language services and terminals.", "100x": "Million-file workspace, many concurrent services and long-lived session; enforce degradation budgets instead of global collapse."}
+    },
+    {
+      "id": "system-graph",
+      "purpose": "Give Cortex one evidence-linked engineering model spanning source through production behavior.",
+      "mechanism": "Rebuildable graph joins symbols, files, dependencies, tests, schemas, runtime evidence, Git, infrastructure, deployments, ownership and agent changes.",
+      "expectedAdvantage": "Higher impact-analysis accuracy and less repeated context gathering than file/vector-only assistants.",
+      "tradeoff": "Graph ingestion and freshness consume compute, storage and implementation complexity.",
+      "failureMode": "Stale or poisoned graph state causes confident but incorrect impact analysis.",
+      "measurementMethod": "Measure retrieval precision/recall, freshness lag, rebuild time, incremental update latency, graph storage cost and correct-impact prediction rate.",
+      "benchmark": {"incrementalUpdateP95Ms": 250, "impactRecallPct": 95, "staleEvidenceMaxSeconds": 5},
+      "fallback": "Mark stale partitions unavailable and fall back to direct repository/runtime queries until rebuilt.",
+      "validationExperiment": "Inject branch changes, generated files, schema migrations and runtime changes into benchmark repositories and compare graph answers with repository ground truth.",
+      "scale": {"1x": "Repository-scale code and test graph.", "10x": "Monorepo plus runtime/data/deployment evidence.", "100x": "Many services and millions of graph edges; partition, compact and rebuild derived regions independently."}
+    },
+    {
+      "id": "capability-security-kernel",
+      "purpose": "Prevent AI agents and extensions from receiving ambient machine or production authority.",
+      "mechanism": "Deny-by-default capabilities plus execution levels from OBSERVE through PRODUCTION, enforced at policy and process/sandbox boundaries with audit evidence.",
+      "expectedAdvantage": "Safer autonomy with deterministic authority boundaries and fewer meaningless approval prompts.",
+      "tradeoff": "Strict boundaries can break tools that assume unrestricted filesystem/network/process access.",
+      "failureMode": "Policy says denied while an underlying process boundary still permits the action.",
+      "measurementMethod": "Run adversarial filesystem, symlink, process-tree, network, secret, Git, database and deployment escape tests; record denied-action correctness and false-positive rate.",
+      "benchmark": {"unauthorizedEscapeSuccesses": 0, "privilegedActionAuditCoveragePct": 100, "policyDecisionP95Ms": 10},
+      "fallback": "Quarantine the execution class and require explicit developer-controlled external execution until containment is restored.",
+      "validationExperiment": "Execute a maintained malicious-tool corpus across every execution level and OS and require zero boundary escapes before qualification.",
+      "scale": {"1x": "Single assistant or extension action.", "10x": "Parallel agents/extensions with mixed permissions.", "100x": "High-concurrency automation; authority must remain per-principal with no shared-capability leakage."}
+    },
+    {
+      "id": "extension-isolation-platform",
+      "purpose": "Keep VS Code ecosystem strengths without inheriting ambient authority, startup drag, failure coupling and opaque resource cost.",
+      "mechanism": "Signed packages, capability manifests, lazy activation, isolated hosts, transactional install/rollback, health accounting, quarantine and compatibility adapters.",
+      "expectedAdvantage": "Broad extensibility with attributable cost and local failure containment.",
+      "tradeoff": "Not every VS Code extension can be supported unchanged; compatibility requires measured adapters.",
+      "failureMode": "Compatibility pressure gradually recreates unrestricted Node authority and shared-host coupling.",
+      "measurementMethod": "Measure extension compatibility corpus pass rate, activation latency, per-extension RSS/CPU/I/O, crash containment and permission enforcement.",
+      "benchmark": {"startupExtensionsActivatedByDefault": 0, "extensionCrashWorkbenchCrashes": 0, "activationP95Ms": 500, "compatibilityCorpusTargetPct": 80},
+      "fallback": "Run unsupported extensions in an explicitly isolated compatibility tier or refuse installation with a precise unsupported-capability report.",
+      "validationExperiment": "Qualify a representative corpus of popular language, formatter, debugger, Git, theme and tooling extensions under failure, hang and malicious-behavior injection.",
+      "scale": {"1x": "Typical profile with 10-20 extensions.", "10x": "Hundreds installed but lazily activated.", "100x": "Marketplace-scale catalog; metadata/index operations must not load extension code."}
+    },
+    {
+      "id": "model-fabric",
+      "purpose": "Make AI capability independent from any single model vendor while preserving task quality and cost control.",
+      "mechanism": "Provider-neutral request contract, provider adapters, policy routing, budgets, retries, circuit breakers, usage accounting and local/custom provider support.",
+      "expectedAdvantage": "Reduced vendor lock-in, graceful provider failure and task-specific quality/cost routing.",
+      "tradeoff": "Lowest-common-denominator abstractions can hide provider-specific strengths if adapters are too generic.",
+      "failureMode": "Provider drift or adapter mismatch silently degrades tool behavior or reasoning quality.",
+      "measurementMethod": "Track task success, latency, cost, token use, tool-call correctness, schema conformance and failover time per provider/model.",
+      "benchmark": {"providerFailoverP95Ms": 2000, "schemaConformancePct": 99.9, "unaccountedModelSpendUsd": 0},
+      "fallback": "Route to last-known-qualified provider/model profile or local-only operation while preserving non-AI IDE functions.",
+      "validationExperiment": "Replay the same engineering task suite against multiple providers plus injected timeout/rate-limit/malformed-output faults and compare outcomes.",
+      "scale": {"1x": "Single developer with one or two providers.", "10x": "Team workloads with concurrent routing and budgets.", "100x": "Large commercial fleet; cost, rate limits and provider incidents must degrade selectively rather than globally."}
+    },
+    {
+      "id": "intent-first-agent-orchestration",
+      "purpose": "Remove artificial Ask/Plan/Agent/Debug mode selection while still choosing the right engineering depth and authority.",
+      "mechanism": "Classify developer intent, gather graph/memory/runtime context, infer assistance depth, compose specialized agents/tools, then gate side effects by security policy.",
+      "expectedAdvantage": "Fewer interaction steps and context switches without sacrificing reviewability or safety.",
+      "tradeoff": "Misclassification can invoke too much or too little machinery.",
+      "failureMode": "A simple request becomes expensive/slow, or a complex/risky request is under-planned.",
+      "measurementMethod": "Measure task completion, routing accuracy, unnecessary tool invocations, developer corrections, time-to-correct-change and approval count.",
+      "benchmark": {"routingAccuracyPct": 95, "unnecessaryModeSelections": 0, "highRiskUngatedActions": 0},
+      "fallback": "Expose the inferred plan/depth for correction and allow deterministic developer override without requiring persistent mode switching.",
+      "validationExperiment": "Replay a labeled corpus from explanation through production deployment and compare inferred depth/authority with expert classification.",
+      "scale": {"1x": "Interactive single task.", "10x": "Multi-file objectives and several specialized agents.", "100x": "Large task graphs; scheduler must bound parallelism, cost and authority while preserving deterministic evidence lineage."}
+    },
+    {
+      "id": "evidence-authoritative-ai",
+      "purpose": "Keep models from becoming the system of record or silently declaring work correct.",
+      "mechanism": "Models propose actions and claims; repository state, System Graph, tests, runtime evidence, policy decisions and durable ledgers authorize and verify outcomes.",
+      "expectedAdvantage": "Higher correctness, reproducibility and auditability than model-confidence-driven workflows.",
+      "tradeoff": "Verification adds latency and compute to changes.",
+      "failureMode": "Weak or incomplete verification evidence is mistaken for proof.",
+      "measurementMethod": "Track escaped regressions, false completion claims, evidence coverage, replay determinism and verification latency.",
+      "benchmark": {"completionClaimsWithoutEvidence": 0, "privilegedChangesWithEvidencePct": 100, "rollbackEvidenceCoveragePct": 100},
+      "fallback": "Downgrade status to unverified and require developer review rather than asserting completion.",
+      "validationExperiment": "Seed tasks with misleading model-friendly cues and require Cortex to reject completion whenever tests/runtime/policy evidence contradicts the model output.",
+      "scale": {"1x": "Single edit and verification chain.", "10x": "Parallel changes with independent evidence.", "100x": "Large agent graphs; evidence must remain attributable, compactable and replayable without trusting agent summaries."}
+    },
+    {
+      "id": "failure-locality-recovery",
+      "purpose": "Keep editor state and developer work alive when individual services, extensions, models, terminals or indexes fail.",
+      "mechanism": "Process/service isolation, restartable derived services, session journal, unsaved-buffer recovery, transactional AI edits, update/extension rollback and rebuildable indexes.",
+      "expectedAdvantage": "Lower blast radius and faster recovery than monolithic failure coupling.",
+      "tradeoff": "More process boundaries and recovery protocols increase orchestration complexity.",
+      "failureMode": "Shared hidden state makes a supposedly local restart corrupt or desynchronize another subsystem.",
+      "measurementMethod": "Fault-inject crashes/hangs/corruption and measure data loss, workbench survival, recovery time and state consistency.",
+      "benchmark": {"unsavedBufferLossBytes": 0, "singleServiceCrashWorkbenchCrashes": 0, "serviceRecoveryP95Ms": 5000},
+      "fallback": "Disable the failed subsystem, preserve editor/workspace state and offer explicit rebuild/restart/rollback without forcing full application loss.",
+      "validationExperiment": "Continuously kill LSP, terminal, extension, model, index and updater processes during active work and verify session integrity plus independent recovery.",
+      "scale": {"1x": "One subsystem failure.", "10x": "Several concurrent failures during active editing.", "100x": "Fleet/provider incident; recovery must avoid synchronized restart storms and preserve local work."}
+    }
+  ],
+  "requiredBenchmarkDimensions": ["latency", "throughput", "memory", "compute-efficiency", "cost", "reliability", "determinism", "recovery", "scalability", "interoperability", "modularity", "model-independence", "developer-experience", "observability", "governance", "security", "automation", "customer-experience"],
+  "qualificationRule": "An architectural claim may be called superior only when the relevant benchmark has current comparative evidence. Missing evidence means unqualified, not assumed superior."
+}
