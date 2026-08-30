@@ -1,0 +1,1 @@
+A packaged control counts as working only when user interaction crosses the intended native/protocol/service boundary and produces the expected observable result. Rendering is not interaction evidence.
