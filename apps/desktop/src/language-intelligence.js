@@ -21,6 +21,12 @@ for (const model of monaco.editor.getModels()) void attachModel(model);
 window.addEventListener('beforeunload', () => void shutdownAll());
 window.addEventListener('cortex-workspace-changed', () => { unavailable.clear(); for (const model of monaco.editor.getModels()) void attachModel(model); });
 
+function workspacePath() {
+  return window.CortexWorkbench?.getState?.().workspace
+    ?? window.cortexWorkbench?.getWorkspace?.()
+    ?? null;
+}
+
 function installProviders(language) {
   disposables.push(monaco.languages.registerCompletionItemProvider(language, {
     triggerCharacters: ['.', ':', '>', '/', '"', "'"],
@@ -56,6 +62,26 @@ function installProviders(language) {
       return (Array.isArray(response?.result) ? response.result : []).filter((item) => item?.uri && item?.range).map((item) => ({ uri: uriForLspLocation(item.uri), range: monacoRange(item.range) }));
     },
   }));
+  disposables.push(monaco.languages.registerDocumentFormattingEditProvider(language, {
+    provideDocumentFormattingEdits: async (model, options) => {
+      const session = await ensureSession(language); if (!session) return [];
+      const response = await request(session, 'textDocument/formatting', { textDocument: { uri: fileUriForModel(model) }, options: { tabSize: options.tabSize, insertSpaces: options.insertSpaces } }, 15_000).catch(() => null);
+      return (Array.isArray(response?.result) ? response.result : []).map((edit) => ({ range: monacoRange(edit.range), text: edit.newText ?? '' }));
+    },
+  }));
+  disposables.push(monaco.languages.registerRenameProvider(language, {
+    provideRenameEdits: async (model, position, newName) => {
+      const session = await ensureSession(language); if (!session) return null;
+      const response = await request(session, 'textDocument/rename', { textDocument: { uri: fileUriForModel(model) }, position: lspPosition(position), newName }, 15_000).catch(() => null);
+      const changes = response?.result?.changes ?? {};
+      const edits = [];
+      for (const [uri, fileEdits] of Object.entries(changes)) {
+        for (const edit of fileEdits ?? []) edits.push({ resource: uriForLspLocation(uri), textEdit: { range: monacoRange(edit.range), text: edit.newText ?? '' }, versionId: undefined });
+      }
+      return edits.length ? { edits } : null;
+    },
+    resolveRenameLocation: async (model, position) => ({ range: model.getWordAtPosition(position) ? new monaco.Range(position.lineNumber, model.getWordAtPosition(position).startColumn, position.lineNumber, model.getWordAtPosition(position).endColumn) : new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column), text: model.getWordAtPosition(position)?.word ?? '' }),
+  }));
 }
 
 async function attachModel(model) {
@@ -81,7 +107,7 @@ async function attachModel(model) {
 async function ensureSession(language) {
   if (sessions.has(language)) return sessions.get(language);
   if (unavailable.has(language)) return null;
-  const workspace = window.cortexWorkbench?.getWorkspace?.();
+  const workspace = workspacePath();
   if (!workspace) return null;
   const descriptor = SERVER_BY_LANGUAGE[language];
   try {
@@ -94,13 +120,15 @@ async function ensureSession(language) {
       rootUri,
       workspaceFolders: [{ uri: rootUri, name: workspace.split(/[\\/]/).at(-1) ?? 'workspace' }],
       capabilities: {
-        workspace: { workspaceFolders: true },
+        workspace: { workspaceFolders: true, applyEdit: true },
         textDocument: {
           synchronization: { dynamicRegistration: false, willSave: false, didSave: true },
           completion: { completionItem: { snippetSupport: true, documentationFormat: ['markdown', 'plaintext'] } },
           hover: { contentFormat: ['markdown', 'plaintext'] },
           definition: { dynamicRegistration: false },
           references: { dynamicRegistration: false },
+          rename: { dynamicRegistration: false, prepareSupport: true },
+          formatting: { dynamicRegistration: false },
           publishDiagnostics: { relatedInformation: true },
         },
       },
@@ -111,10 +139,12 @@ async function ensureSession(language) {
     await notify(session, 'initialized', {});
     startNotificationPump();
     setLanguageStatus(`${descriptor.program} connected`);
+    window.dispatchEvent(new CustomEvent('cortex-language-health', { detail: { language, status: 'connected', server: descriptor.program } }));
     return session;
   } catch (error) {
     unavailable.add(language);
     setLanguageStatus(`${descriptor.program} unavailable`);
+    window.dispatchEvent(new CustomEvent('cortex-language-health', { detail: { language, status: 'unavailable', server: descriptor.program, error: String(error) } }));
     return null;
   }
 }
@@ -152,6 +182,7 @@ function applyDiagnostics(language, params) {
   const errorNode = document.getElementById('error-count'); const warningNode = document.getElementById('warning-count');
   if (errorNode) errorNode.textContent = `✕ ${errors}`; if (warningNode) warningNode.textContent = `⚠ ${warnings}`;
   const badge = document.querySelector('[data-panel="problems"] .badge'); if (badge) badge.textContent = String(errors + warnings);
+  window.dispatchEvent(new CustomEvent('cortex-diagnostics-changed', { detail: { language, uri: params?.uri, errors, warnings } }));
 }
 
 async function request(session, method, params, timeoutMs) { return invoke('lsp_request', { sessionId: session.id, method, params, timeoutMs }); }
@@ -184,13 +215,18 @@ function completionItem(model, position, item) {
 }
 function completionKind(kind) { const values = monaco.languages.CompletionItemKind; const map = [values.Text,values.Method,values.Function,values.Constructor,values.Field,values.Variable,values.Class,values.Interface,values.Module,values.Property,values.Unit,values.Value,values.Enum,values.Keyword,values.Snippet,values.Color,values.File,values.Reference,values.Folder,values.EnumMember,values.Constant,values.Struct,values.Event,values.Operator,values.TypeParameter]; return map[Math.max(0, Number(kind ?? 1) - 1)] ?? values.Text; }
 function markerSeverity(value) { return ({ 1: monaco.MarkerSeverity.Error, 2: monaco.MarkerSeverity.Warning, 3: monaco.MarkerSeverity.Info, 4: monaco.MarkerSeverity.Hint })[Number(value)] ?? monaco.MarkerSeverity.Info; }
-function markdownContent(value) { if (typeof value === 'string') return { value }; if (value?.value != null) return { value: String(value.value), isTrusted: false }; if (value?.language && value?.value) return { value: `\`\`\`${value.language}\n${value.value}\n\`\`\`` }; return { value: String(value ?? '') }; }
+function markdownContent(value) {
+  if (typeof value === 'string') return { value };
+  if (value?.language && value?.value != null) return { value: `\`\`\`${value.language}\n${value.value}\n\`\`\`` };
+  if (value?.value != null) return { value: String(value.value), isTrusted: false };
+  return { value: String(value ?? '') };
+}
 function lspPosition(position) { return { line: position.lineNumber - 1, character: position.column - 1 }; }
 function monacoRange(range) { return new monaco.Range(Number(range.start?.line ?? 0)+1,Number(range.start?.character ?? 0)+1,Number(range.end?.line ?? 0)+1,Number(range.end?.character ?? 0)+1); }
 function monacoToLspRange(range) { return { start: { line: range.startLineNumber-1, character: range.startColumn-1 }, end: { line: range.endLineNumber-1, character: range.endColumn-1 } }; }
 function normalizeSyncKind(sync) { if (typeof sync === 'number') return sync; if (typeof sync?.change === 'number') return sync.change; return 1; }
-function fileUriForModel(model) { const path = String(model.uri.path ?? '').replace(/^\//,''); return fileUri(window.cortexWorkbench?.getWorkspace?.(), decodeURIComponent(path)); }
+function fileUriForModel(model) { const path = String(model.uri.path ?? '').replace(/^\//,''); return fileUri(workspacePath(), decodeURIComponent(path)); }
 function fileUri(root, relative = '') { if (!root) return ''; let path = `${root}${relative ? `/${relative}` : ''}`.replace(/\\/g,'/'); if (/^[A-Za-z]:\//.test(path)) path = `/${path}`; return encodeURI(`file://${path}`).replace(/#/g,'%23'); }
 function uriForLspLocation(uri) { const model = findModelForFileUri(uri); return model?.uri ?? monaco.Uri.parse(uri); }
-function findModelForFileUri(uri) { const normalized = decodeURIComponent(String(uri ?? '')).replace(/^file:\/\//,'').replace(/^\/([A-Za-z]:\/)/,'$1').replace(/\\/g,'/'); return monaco.editor.getModels().find((model) => { const path = decodeURIComponent(String(model.uri.path ?? '')).replace(/^\//,'').replace(/\\/g,'/'); const root = String(window.cortexWorkbench?.getWorkspace?.() ?? '').replace(/\\/g,'/').replace(/\/$/,''); return normalized === `${root}/${path}`; }) ?? null; }
+function findModelForFileUri(uri) { const normalized = decodeURIComponent(String(uri ?? '')).replace(/^file:\/\//,'').replace(/^\/([A-Za-z]:\/)/,'$1').replace(/\\/g,'/'); return monaco.editor.getModels().find((model) => { const path = decodeURIComponent(String(model.uri.path ?? '')).replace(/^\//,'').replace(/\\/g,'/'); const root = String(workspacePath() ?? '').replace(/\\/g,'/').replace(/\/$/,''); return normalized === `${root}/${path}`; }) ?? null; }
 function setLanguageStatus(text) { const status = document.getElementById('cortex-status'); if (status) status.textContent = text; }
