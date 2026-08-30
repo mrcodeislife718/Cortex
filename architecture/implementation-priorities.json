@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "ordering": [
+    "make-packaged-workbench-interactive",
+    "prove-real-repository-daily-use",
+    "wire-language-git-debug-terminal-task-surfaces-end-to-end",
+    "expose-complete-engineering-runtime-agent-loop-in-desktop",
+    "continuously-populate-system-graph-from-live-workbench-evidence",
+    "complete-extension-marketplace-and-os-containment",
+    "complete-remote-container-workspace-ux",
+    "qualify-low-memory-performance-and-graceful-degradation",
+    "qualify-adversarial-security-and-failure-locality",
+    "finish-desktop-polish-accessibility-and-keyboard-workflows",
+    "finish-signed-cross-platform-distribution-and-update-rollback",
+    "deploy-commercial-identity-billing-model-data-observability-stack",
+    "run-fresh-machine-end-to-end-release-gate",
+    "publish-only-measured-superiority-claims"
+  ],
+  "rule": "Implementation may proceed in parallel where dependencies permit, but no downstream PASS may mask an upstream interaction failure."
+}
