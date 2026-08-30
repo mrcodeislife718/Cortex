@@ -1,3 +1,4 @@
+mod git_ops;
 mod protocol_host;
 mod pty;
 mod session;
@@ -195,6 +196,7 @@ pub fn run() {
             updater::check_for_updates, updater::install_pending_update,
             workspace_ops::create_workspace_file, workspace_ops::create_workspace_directory, workspace_ops::rename_workspace_entry, workspace_ops::delete_workspace_entry,
             workspace_ops::git_diff, workspace_ops::git_stage, workspace_ops::git_unstage, workspace_ops::git_commit, workspace_ops::discover_project_tasks, workspace_ops::run_project_task,
+            git_ops::git_fetch, git_ops::git_pull, git_ops::git_push, git_ops::git_branches, git_ops::git_switch_branch, git_ops::git_create_branch, git_ops::git_history, git_ops::git_clone_repository,
             session::save_workspace_session, session::restore_workspace_session, session::clear_workspace_session,
             protocol_host::protocol_start, protocol_host::lsp_request, protocol_host::lsp_notify, protocol_host::dap_request, protocol_host::dap_notify, protocol_host::protocol_take_notifications, protocol_host::protocol_stop,
             pty::pty_start, pty::pty_write, pty::pty_read, pty::pty_resize, pty::pty_stop
