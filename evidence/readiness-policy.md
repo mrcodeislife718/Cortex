@@ -1,0 +1,1 @@
+Readiness is evidence-scoped. Desktop usability, AI autonomy, semantic depth, extension safety, remote development, performance, security, distribution and commercial production are evaluated independently. A PASS in one area cannot be used to imply PASS in another.
