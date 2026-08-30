@@ -10,6 +10,16 @@ Cortex is developer-first. Architectural sophistication must reduce developer ef
 
 Core IDE operation must remain resilient to model/provider failure. AI providers are interchangeable through the Model Fabric. Repository and external content are untrusted data rather than authority. Every privileged action is mediated through explicit capabilities and execution levels.
 
+## Technical-superiority evidence contract
+
+`architecture/superiority-contract.json` is the machine-readable architecture and evidence contract for Cortex. It records the competitive reference set, the strengths Cortex must preserve or exceed, weaknesses Cortex must structurally eliminate, the core architectural innovations, and the required purpose/mechanism/advantage/tradeoff/failure/measurement/benchmark/fallback/validation fields for each innovation.
+
+Every core architectural innovation must include consequence analysis at 1×, 10× and 100×. `npm run qualify:architecture` validates that contract and is part of the normal `npm run check` CI path. A superiority claim is invalid unless it has current comparative evidence. Missing evidence means UNQUALIFIED, never implicitly superior.
+
+Cortex also exposes `ComparativeQualification` in the performance qualification layer. It requires a measured Cortex value, competitor baseline, metric direction, evidence source, freshness window and minimum improvement threshold before returning `SUPERIOR`. Stale or losing measurements are explicitly classified rather than hidden.
+
+This makes technical superiority a build constraint rather than a branding statement.
+
 ## No-dead-weight rule
 
 Cortex may copy a proven interaction convention, protocol or compatibility boundary, but it must not copy another IDE's internal baggage merely to obtain familiarity. Compatibility lives at the edge; Cortex owns its internals.
