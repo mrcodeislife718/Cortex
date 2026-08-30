@@ -42,7 +42,7 @@ jobs:
             cortex-desktop-${{ runner.os }}-cargo-
       - name: Install Linux Tauri dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb
       - name: Install locked desktop dependencies
         working-directory: apps/desktop
         run: npm ci --no-audit --no-fund
@@ -60,6 +60,24 @@ jobs:
         env:
           CARGO_NET_GIT_FETCH_WITH_CLI: "true"
         run: npm run tauri -- build --bundles "${{ matrix.bundles }}" -- --locked
+      - name: Smoke launch packaged Cortex runtime
+        if: runner.os == 'Linux'
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          set +e
+          xvfb-run -a timeout 8s ./src-tauri/target/release/cortex-desktop >cortex-startup.log 2>&1
+          status=$?
+          set -e
+          cat cortex-startup.log
+          if [ "$status" -ne 124 ]; then
+            echo "Cortex did not remain alive through the startup smoke window (exit $status)" >&2
+            exit 1
+          fi
+          if grep -Eiq 'panicked|PluginInitialization|failed to run Cortex desktop runtime' cortex-startup.log; then
+            echo "Cortex startup log contains a fatal runtime initialization error" >&2
+            exit 1
+          fi
       - name: Upload Linux packages
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
