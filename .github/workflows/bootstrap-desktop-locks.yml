@@ -31,12 +31,14 @@ jobs:
       - name: Commit generated dependency locks
         shell: bash
         run: |
-          if git diff --quiet -- apps/desktop/package-lock.json apps/desktop/src-tauri/Cargo.lock; then
+          changes="$(git status --porcelain --untracked-files=all -- apps/desktop/package-lock.json apps/desktop/src-tauri/Cargo.lock)"
+          if [ -z "$changes" ]; then
             echo "Desktop dependency locks are already current."
             exit 0
           fi
+          printf '%s\n' "$changes"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apps/desktop/package-lock.json apps/desktop/src-tauri/Cargo.lock
+          git add -- apps/desktop/package-lock.json apps/desktop/src-tauri/Cargo.lock
           git commit -m "Lock Cortex desktop dependencies"
           git push origin HEAD:${{ github.head_ref }}
