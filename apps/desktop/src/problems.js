@@ -50,10 +50,6 @@ function renderProblems() {
       } catch {
         return;
       }
-      const editor = monaco.editor.getEditors?.().find((candidate) => candidate.getModel()?.uri.toString() === marker.resource.toString());
-      editor?.setPosition({ lineNumber: marker.startLineNumber, column: marker.startColumn });
-      editor?.revealPositionInCenter({ lineNumber: marker.startLineNumber, column: marker.startColumn });
-      editor?.focus();
     };
     list.append(row);
   }
@@ -61,10 +57,8 @@ function renderProblems() {
 }
 
 function workspaceMarkers() {
-  const root = String(window.cortexWorkbench?.getWorkspace?.() ?? '').replace(/\\/g, '/').replace(/\/$/, '');
   return monaco.editor.getModelMarkers({})
     .filter((marker) => marker.resource?.scheme === 'cortex')
-    .filter((marker) => !root || marker.resource.path)
     .sort((a, b) => b.severity - a.severity || String(a.resource).localeCompare(String(b.resource)) || a.startLineNumber - b.startLineNumber)
     .slice(0, 5000);
 }
