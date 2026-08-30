@@ -1,0 +1,1 @@
+Cortex must not report a feature, workflow, platform, commercial path or superiority claim as complete merely because code exists. Completion requires the evidence named by the relevant contract. Unavailable external credentials or platform authorities remain external boundaries, not fabricated PASS states.
