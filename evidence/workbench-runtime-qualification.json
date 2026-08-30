@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "status": "UNVERIFIED",
+  "reason": "The authoritative runtime and qualification gates are implemented on this branch, but packaged interactive qualification has not yet produced exact-head evidence.",
+  "required": [
+    "desktop-build",
+    "native-runtime-start",
+    "open-folder-interaction",
+    "explorer-population",
+    "open-edit-save-file",
+    "workspace-search",
+    "git-status-diff-stage-commit",
+    "project-task-execution",
+    "pty-input-output-resize-stop",
+    "command-palette",
+    "settings-application",
+    "session-save-restore",
+    "language-intelligence",
+    "debugger",
+    "extension-surface",
+    "assistant-no-fabrication",
+    "subsystem-failure-locality"
+  ],
+  "promotionRule": "Do not change status to PASS until all required packaged workflows have exact-head executable evidence."
+}
