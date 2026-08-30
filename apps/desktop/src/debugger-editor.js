@@ -8,7 +8,7 @@ installStyles();
 for (const editor of monaco.editor.getEditors?.() ?? []) bindEditor(editor);
 monaco.editor.onDidCreateEditor?.((editor) => bindEditor(editor));
 window.addEventListener('keydown', (event) => {
-  if (event.key !== 'F9') return;
+  if (event.key !== 'F9' || !event.isTrusted) return;
   const editor = activeEditor();
   const path = activePath();
   const line = editor?.getPosition()?.lineNumber;
