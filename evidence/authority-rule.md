@@ -1,0 +1,1 @@
+Capability and authority are distinct. Possessing a tool does not grant permission to use it. Every privileged or external side effect must pass the execution-level policy and remain attributable in evidence.
