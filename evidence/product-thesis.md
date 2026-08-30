@@ -1,0 +1,1 @@
+Cortex is a verifiable software factory presented with the simplicity and familiarity of a professional IDE. Baseline parity is VS Code, Cursor, Replit, JetBrains and Zed in their respective strongest dimensions; Cortex-specific superiority must be measured rather than asserted.
