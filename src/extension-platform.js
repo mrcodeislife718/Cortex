@@ -8,8 +8,9 @@ export const ExtensionRuntime = Object.freeze({
 });
 
 export class ExtensionPlatform {
-  constructor({ securityKernel = null, clock = () => Date.now(), failureThreshold = 3 } = {}) {
+  constructor({ securityKernel = null, processHost = null, clock = () => Date.now(), failureThreshold = 3 } = {}) {
     this.securityKernel = securityKernel;
+    this.processHost = processHost;
     this.clock = clock;
     this.failureThreshold = failureThreshold;
     this.extensions = new Map();
@@ -61,17 +62,53 @@ export class ExtensionPlatform {
   eligibleFor(event) {
     return [...this.extensions.values()]
       .filter((state) => state.enabled && state.status !== 'quarantined')
-      .filter((state) => state.manifest.activationEvents.includes(event))
+      .filter((state) => state.manifest.activationEvents.includes(event) || state.manifest.activationEvents.includes('*'))
       .map((state) => state.manifest.id);
   }
 
   async activate(id, { event, runtime, token = null, loader } = {}) {
+    return this.#activateWith(id, { event, runtime, token }, async (state) => {
+      if (typeof loader !== 'function') throw new TypeError('extension activation requires a loader');
+      return loader(clone(state.manifest));
+    });
+  }
+
+  async activateIsolated(id, { event, runtime, token = null, modulePath, exportName = 'activate', payload = null, cwd, timeoutMs } = {}) {
+    if (!this.processHost || typeof this.processHost.run !== 'function') throw new Error('isolated extension process host is not configured');
+    if (!modulePath) throw new Error('isolated extension activation requires modulePath');
+    return this.#activateWith(id, { event, runtime, token }, async (state) => {
+      const execution = await this.processHost.run({ modulePath, exportName, payload, cwd, timeoutMs });
+      state.lastProcessId = execution.pid ?? null;
+      state.lastStdoutBytes = Buffer.byteLength(execution.stdout ?? '');
+      state.lastStderrBytes = Buffer.byteLength(execution.stderr ?? '');
+      return execution.result;
+    });
+  }
+
+  health(id) {
+    const state = this.#require(id);
+    return {
+      id,
+      status: state.status,
+      enabled: state.enabled,
+      activated: state.activated,
+      activations: state.activations,
+      failures: state.failures,
+      lastActivationMs: state.lastActivationMs,
+      lastError: state.lastError,
+      conflicts: clone(state.conflicts),
+      lastProcessId: state.lastProcessId ?? null,
+      lastStdoutBytes: state.lastStdoutBytes ?? 0,
+      lastStderrBytes: state.lastStderrBytes ?? 0,
+    };
+  }
+
+  async #activateWith(id, { event, runtime, token }, operation) {
     const state = this.#require(id);
     if (!state.enabled) throw new Error(`extension disabled: ${id}`);
     if (state.status === 'quarantined') throw new Error(`extension quarantined: ${id}`);
-    if (!state.manifest.activationEvents.includes(event)) throw new Error(`extension ${id} is not eligible for activation event ${event}`);
+    if (!state.manifest.activationEvents.includes(event) && !state.manifest.activationEvents.includes('*')) throw new Error(`extension ${id} is not eligible for activation event ${event}`);
     if (runtime !== state.manifest.runtime) throw new Error(`extension ${id} requires ${state.manifest.runtime} runtime`);
-    if (typeof loader !== 'function') throw new TypeError('extension activation requires a loader');
 
     if (this.securityKernel && state.manifest.capabilities.length) {
       for (const capability of state.manifest.capabilities) {
@@ -85,7 +122,7 @@ export class ExtensionPlatform {
 
     const started = this.clock();
     try {
-      const api = await loader(clone(state.manifest));
+      const api = await operation(state);
       const elapsed = Math.max(0, this.clock() - started);
       state.lastActivationMs = elapsed;
       if (elapsed > state.manifest.budgets.activationMs) {
@@ -109,21 +146,6 @@ export class ExtensionPlatform {
       }
       throw error;
     }
-  }
-
-  health(id) {
-    const state = this.#require(id);
-    return {
-      id,
-      status: state.status,
-      enabled: state.enabled,
-      activated: state.activated,
-      activations: state.activations,
-      failures: state.failures,
-      lastActivationMs: state.lastActivationMs,
-      lastError: state.lastError,
-      conflicts: clone(state.conflicts),
-    };
   }
 
   #findContributionConflicts(manifest) {
@@ -156,9 +178,7 @@ function validateManifest(manifest) {
   if (!Object.values(ExtensionRuntime).includes(manifest.runtime)) throw new Error('extension runtime is invalid');
   if (!Array.isArray(manifest.activationEvents)) throw new Error('extension activationEvents must be an array');
   if (!Array.isArray(manifest.capabilities ?? [])) throw new Error('extension capabilities must be an array');
-  if (manifest.activationEvents.includes('*') && !manifest.startupJustification) {
-    throw new Error('wildcard startup activation requires explicit justification');
-  }
+  if (manifest.activationEvents.includes('*') && !manifest.startupJustification) throw new Error('wildcard startup activation requires explicit justification');
   const activationMs = manifest.budgets?.activationMs ?? 500;
   if (!Number.isFinite(activationMs) || activationMs <= 0) throw new Error('extension activation budget must be positive');
 }
@@ -173,10 +193,7 @@ function normalizeManifest(manifest) {
     capabilities: [...new Set(manifest.capabilities ?? [])],
     executionLevel: manifest.executionLevel ?? 'OBSERVE',
     budgets: { activationMs: manifest.budgets?.activationMs ?? 500 },
-    compatibility: {
-      vscode: Boolean(manifest.compatibility?.vscode),
-      apiVersion: manifest.compatibility?.apiVersion ?? null,
-    },
+    compatibility: { vscode: Boolean(manifest.compatibility?.vscode), apiVersion: manifest.compatibility?.apiVersion ?? null },
     contributions: clone(manifest.contributions ?? {}),
   };
 }

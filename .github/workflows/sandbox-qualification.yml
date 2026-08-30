@@ -1,0 +1,21 @@
+name: Agent Sandbox Qualification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: sandbox-qualification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  container-sandbox:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: docker pull node:24-alpine
+      - run: node --test test/agent-sandbox.integration.test.js
