@@ -1,0 +1,42 @@
+name: Bootstrap Desktop Locks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  generate-locks:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/desktop/package.json
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Generate npm lockfile from resolved desktop dependencies
+        working-directory: apps/desktop
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Generate Cargo lockfile from resolved desktop dependencies
+        working-directory: apps/desktop/src-tauri
+        run: cargo generate-lockfile
+      - name: Commit generated dependency locks
+        shell: bash
+        run: |
+          if git diff --quiet -- apps/desktop/package-lock.json apps/desktop/src-tauri/Cargo.lock; then
+            echo "Desktop dependency locks are already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/desktop/package-lock.json apps/desktop/src-tauri/Cargo.lock
+          git commit -m "Lock Cortex desktop dependencies"
+          git push origin HEAD:${{ github.head_ref }}
