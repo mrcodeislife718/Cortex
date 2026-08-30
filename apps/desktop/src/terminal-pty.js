@@ -11,7 +11,11 @@ let resizeObserver = null;
 let starting = null;
 
 for (const button of document.querySelectorAll('[data-panel="terminal"]')) {
-  button.addEventListener('click', () => queueMicrotask(() => void ensureTerminal()));
+  button.addEventListener('click', (event) => {
+    event.stopImmediatePropagation();
+    document.querySelectorAll('[data-panel]').forEach((item) => item.classList.toggle('active', item === button));
+    queueMicrotask(() => void ensureTerminal());
+  }, { capture: true });
 }
 window.addEventListener('keydown', (event) => {
   const mod = event.ctrlKey || event.metaKey;
@@ -21,9 +25,13 @@ window.addEventListener('keydown', (event) => {
   }
 });
 window.addEventListener('beforeunload', () => void stopTerminal());
+window.addEventListener('cortex-workspace-changed', () => void restartTerminalForWorkspace());
 
 async function ensureTerminal() {
-  if (!window.cortexWorkbench?.getWorkspace?.()) return;
+  if (!window.cortexWorkbench?.getWorkspace?.()) {
+    setStatus('Open a workspace to start the terminal');
+    return;
+  }
   if (starting) return starting;
   if (terminal && sessionId) { terminal.focus(); fitTerminal(); return; }
   starting = startTerminal().finally(() => { starting = null; });
@@ -80,12 +88,20 @@ async function drain() {
   }
 }
 
+async function restartTerminalForWorkspace() {
+  if (!terminal && !sessionId) return;
+  await stopTerminal();
+  const terminalButton = document.querySelector('[data-panel="terminal"]');
+  if (terminalButton?.classList.contains('active')) await ensureTerminal();
+}
+
 async function stopTerminal() {
   clearInterval(pump); pump = null;
   resizeObserver?.disconnect(); resizeObserver = null;
   const id = sessionId; sessionId = null;
   if (id) await invoke('pty_stop', { sessionId: id }).catch(() => {});
   terminal?.dispose(); terminal = null; fitAddon = null;
+  document.getElementById('panel-body')?.classList.remove('pty-panel');
 }
 
 function fitTerminal() {
