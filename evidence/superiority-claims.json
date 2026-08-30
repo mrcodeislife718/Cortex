@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "claims": [
+    {"dimension":"ide-completeness","baseline":"VS Code","status":"UNVERIFIED"},
+    {"dimension":"agentic-coding","baseline":"Cursor","status":"UNVERIFIED"},
+    {"dimension":"integrated-execution-deployment","baseline":"Replit","status":"UNVERIFIED"},
+    {"dimension":"semantic-intelligence","baseline":"JetBrains","status":"UNVERIFIED"},
+    {"dimension":"responsiveness-efficiency","baseline":"Zed","status":"UNVERIFIED"},
+    {"dimension":"system-level-impact-understanding","baseline":"file/vector-oriented assistants","status":"UNVERIFIED"},
+    {"dimension":"capability-security","baseline":"ambient-authority extension/agent models","status":"UNVERIFIED"},
+    {"dimension":"failure-locality-recovery","baseline":"shared-runtime failure coupling","status":"UNVERIFIED"}
+  ],
+  "requiredEvidencePerClaim": ["baseline measurement", "Cortex measurement", "reproducible workload", "metric direction", "threshold", "source", "freshness", "result"],
+  "rule": "No claim may become SUPERIOR without complete comparative evidence."
+}
