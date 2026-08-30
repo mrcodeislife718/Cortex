@@ -13,6 +13,7 @@ function installTitleBar(host) {
   const menus = {
     File: [
       ['Open Folder…', () => api()?.chooseWorkspace?.()],
+      ['Clone Repository…', () => window.dispatchEvent(new Event('cortex-git-clone'))],
       ['Save', () => api()?.saveActive?.()],
     ],
     Edit: [['Command Palette…', openCommandPalette]],
