@@ -1,0 +1,1 @@
+Any visible Cortex control that cannot complete its intended interaction path is a product failure, not a cosmetic issue. The workbench must surface the failing subsystem and preserve unaffected editing state.
