@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::{fs, path::{Path, PathBuf}, time::Duration};
 use tauri::State;
 
@@ -11,6 +11,12 @@ pub struct ProjectTask {
     command: String,
     package_manager: String,
     kind: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectTaskInput {
+    name: String,
 }
 
 #[tauri::command]
@@ -98,8 +104,9 @@ pub fn discover_project_tasks(state: State<'_, WorkspaceState>) -> Result<Vec<Pr
 }
 
 #[tauri::command]
-pub fn run_project_task(name: String, state: State<'_, WorkspaceState>) -> Result<CommandResult, String> {
-    let name = name.trim();
+pub fn run_project_task(name: Option<String>, task: Option<ProjectTaskInput>, state: State<'_, WorkspaceState>) -> Result<CommandResult, String> {
+    let supplied = name.or_else(|| task.map(|value| value.name)).ok_or("project task name is required")?;
+    let name = supplied.trim();
     if name.is_empty() || name.len() > 128 || !name.chars().all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, ':' | '-' | '_' | '.')) { return Err("invalid project task name".into()); }
     let root = workspace_root(&state)?;
     let manifest = root.join("package.json");
