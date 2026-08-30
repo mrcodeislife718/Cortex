@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "head": null,
+  "status": "UNVERIFIED",
+  "platforms": ["linux", "windows", "macos"],
+  "workflows": [
+    {"id":"workspace-open","expected":"folder picker opens, native workspace is set, Explorer populates","status":"UNVERIFIED"},
+    {"id":"file-edit-save","expected":"file opens in Monaco, edit marks dirty, save persists bytes","status":"UNVERIFIED"},
+    {"id":"workspace-search","expected":"query returns navigable repository matches","status":"UNVERIFIED"},
+    {"id":"git","expected":"status, diff, stage and commit operate on opened repository","status":"UNVERIFIED"},
+    {"id":"tasks","expected":"project tasks are discovered and produce captured output","status":"UNVERIFIED"},
+    {"id":"terminal","expected":"PTY accepts input, emits output, resizes and stops cleanly","status":"UNVERIFIED"},
+    {"id":"language-intelligence","expected":"diagnostics and semantic navigation cross LSP boundary","status":"UNVERIFIED"},
+    {"id":"debugging","expected":"DAP session launches, breaks, steps, inspects and terminates","status":"UNVERIFIED"},
+    {"id":"extensions","expected":"extension lifecycle is usable and failure remains contained","status":"UNVERIFIED"},
+    {"id":"assistant","expected":"assistant uses bounded workspace evidence or explicitly reports unavailable hosted runtime","status":"UNVERIFIED"},
+    {"id":"recovery","expected":"workspace and open editors survive restart without data loss","status":"UNVERIFIED"},
+    {"id":"failure-locality","expected":"individual subsystem failure does not destroy editor state","status":"UNVERIFIED"}
+  ],
+  "promotionRule": "Populate head and PASS statuses only from exact-head packaged interaction evidence."
+}
