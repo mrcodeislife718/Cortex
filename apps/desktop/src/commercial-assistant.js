@@ -5,7 +5,7 @@ import './commercial-assistant.css';
 const apiUrl = String(import.meta.env.VITE_CORTEX_COMMERCIAL_API_URL ?? '').trim().replace(/\/$/, '');
 const form = document.getElementById('assistant-form');
 
-if (apiUrl && form) form.addEventListener('submit', handleAssistant, { capture: true });
+if (form) form.addEventListener('submit', handleAssistant, { capture: true });
 
 async function handleAssistant(event) {
   event.preventDefault();
@@ -17,6 +17,13 @@ async function handleAssistant(event) {
   const body = document.querySelector('.assistant-body');
   const contextLabel = document.getElementById('context-label');
   renderMessage(body, 'user', goal);
+
+  if (!apiUrl) {
+    renderMessage(body, 'error', 'Engineering intelligence is not configured in this Cortex build. Editing, terminal, Git, language intelligence, debugging, and local workspace features remain available; Cortex will not pretend an AI request was completed when no model backend is configured.');
+    contextLabel.textContent = 'Engineering intelligence unavailable';
+    return;
+  }
+
   contextLabel.textContent = 'Gathering Cortex context…';
   try {
     const context = await collectContext();
