@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "status": "PARTIAL",
+  "contract": "architecture/full-product-contract.json",
+  "implementedOnThisBranch": [
+    "single-authoritative-desktop-workbench-runtime",
+    "workspace-explorer-editor-save-search-git-task-terminal-interaction-wiring",
+    "command-palette-and-settings",
+    "visible-subsystem-health-and-failure-reporting",
+    "durable-workbench-session-continuity",
+    "assistant-no-fabrication-boundary",
+    "native-pty-contract-alignment",
+    "interactive-workbench-qualification-gate",
+    "full-product-contract-qualification-gate"
+  ],
+  "notClaimedComplete": [
+    "full-packaged-interaction-evidence",
+    "complete-vscode-level-ide-depth",
+    "complete-cursor-level-agent-loop-in-desktop",
+    "complete-replit-level-deployment-loop-in-desktop",
+    "complete-jetbrains-level-semantic-depth",
+    "complete-zed-level-comparative-performance-proof",
+    "full-extension-marketplace-and-os-sandbox",
+    "full-remote-workspace-ux",
+    "live-commercial-production-deployment",
+    "external-signing-and-notarization",
+    "fresh-machine-end-to-end-release-gate"
+  ],
+  "rule": "Remain PARTIAL until every full-product contract area has implementation plus the required exact-head or external evidence."
+}
