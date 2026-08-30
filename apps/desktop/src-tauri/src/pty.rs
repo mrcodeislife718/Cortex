@@ -1,4 +1,4 @@
-use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize, PtySystem};
+use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 use serde::Serialize;
 use std::{
     collections::{HashMap, VecDeque},
@@ -59,10 +59,10 @@ pub fn pty_start(rows: Option<u16>, cols: Option<u16>, workspace: State<'_, Work
     let child = pair.slave.spawn_command(command).map_err(|error| format!("shell start failed: {error}"))?;
     drop(pair.slave);
     let process_id = child.process_id();
-    let mut reader = pair.master.try_clone_reader().map_err(|error| format!("PTY reader unavailable: {error}"))?;
+    let reader = pair.master.try_clone_reader().map_err(|error| format!("PTY reader unavailable: {error}"))?;
     let writer = pair.master.take_writer().map_err(|error| format!("PTY writer unavailable: {error}"))?;
     let output = Arc::new(Mutex::new(OutputBuffer::default()));
-    spawn_reader(&mut reader, Arc::clone(&output));
+    spawn_reader(reader, Arc::clone(&output));
     let session_id = format!("pty-{}", PTY_COUNTER.fetch_add(1, Ordering::Relaxed));
     let session = Arc::new(PtySession { master: Mutex::new(pair.master), writer: Mutex::new(writer), child: Mutex::new(child), output });
     host.sessions.lock().map_err(|_| "PTY host poisoned")?.insert(session_id.clone(), session);
@@ -101,7 +101,18 @@ pub fn pty_read(session_id: String, max_bytes: Option<usize>, host: State<'_, Pt
 #[tauri::command]
 pub fn pty_resize(session_id: String, rows: u16, cols: u16, host: State<'_, PtyHost>) -> Result<(), String> {
     let session = get_session(&host, &session_id)?;
-    session.master.lock().map_err(|_| "PTY master poisoned")?.resize(PtySize { rows: rows.clamp(2, 500), cols: cols.clamp(10, 1_000), pixel_width: 0, pixel_height: 0 }).map_err(|error| error.to_string())
+    let result = {
+        let master = session.master.lock().map_err(|_| "PTY master poisoned")?;
+        master
+            .resize(PtySize {
+                rows: rows.clamp(2, 500),
+                cols: cols.clamp(10, 1_000),
+                pixel_width: 0,
+                pixel_height: 0,
+            })
+            .map_err(|error| error.to_string())
+    };
+    result
 }
 
 #[tauri::command]
@@ -118,8 +129,7 @@ fn get_session(host: &State<'_, PtyHost>, session_id: &str) -> Result<Arc<PtySes
     host.sessions.lock().map_err(|_| "PTY host poisoned")?.get(session_id).cloned().ok_or_else(|| "unknown PTY session".into())
 }
 
-fn spawn_reader(reader: &mut Box<dyn Read + Send>, output: Arc<Mutex<OutputBuffer>>) {
-    let mut reader = std::mem::replace(reader, Box::new(std::io::empty()));
+fn spawn_reader(mut reader: Box<dyn Read + Send>, output: Arc<Mutex<OutputBuffer>>) {
     thread::spawn(move || {
         let mut buffer = [0u8; 16 * 1024];
         loop {
