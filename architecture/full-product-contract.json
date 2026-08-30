@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "product": "Cortex",
+  "thesis": "A verifiable software factory disguised as an easy-to-use IDE.",
+  "baseline": [
+    "VS Code-level professional IDE completeness",
+    "Cursor-level AI coding and agentic execution",
+    "Replit-level integrated execution and deployment assistance",
+    "JetBrains-level semantic understanding and refactoring safety",
+    "Zed-level responsiveness and efficiency"
+  ],
+  "userExperience": {
+    "principle": "power-underneath-simplicity-on-top",
+    "entry": "Open Cortex. Open a repository. Start working.",
+    "intentExample": "Fix this.",
+    "forbiddenModeBurden": ["Ask", "Plan", "Agent", "Debug"]
+  },
+  "completionAreas": [
+    "real-repository-qualification",
+    "terminal-and-task-execution",
+    "language-intelligence",
+    "git-workflow",
+    "debugger",
+    "cortex-intelligence",
+    "agent-execution",
+    "extensions",
+    "system-graph",
+    "remote-and-container-development",
+    "performance-and-low-memory-qualification",
+    "security-qualification",
+    "desktop-polish",
+    "distribution",
+    "commercial-system",
+    "fresh-machine-final-qualification"
+  ],
+  "superiorityLayers": [
+    "system-graph-over-file-only-understanding",
+    "persistent-evidence-backed-engineering-knowledge",
+    "closed-loop-reason-decide-act-observe-verify-learn-preserve",
+    "work-orders-wiring-notes-verification-packs",
+    "proposal-validation-authorization-execution-verification",
+    "no-model-declared-completion",
+    "specialized-dependency-aware-multi-agent-engineering",
+    "separate-working-task-durable-evidence-and-failure-memory",
+    "failure-learning",
+    "provider-and-model-independence",
+    "quality-latency-cost-privacy-aware-model-routing",
+    "graph-and-budget-driven-context-not-context-dumping",
+    "local-ai-where-qualified",
+    "intent-first-interaction",
+    "constrained-autonomy-and-halt",
+    "execution-authority-levels",
+    "repository-content-is-data-not-authority",
+    "secrets-are-not-automatic-context",
+    "independent-adversarial-verification",
+    "failure-locality",
+    "transactional-reviewable-reversible-ai-changes",
+    "vscode-ecosystem-reach-with-independent-internals",
+    "per-extension-resource-attribution",
+    "extension-capability-containment-signatures-quarantine-rollback",
+    "verified-marketplace",
+    "deep-rebuildable-semantic-intelligence",
+    "edit-run-inspect-debug-deploy-loop",
+    "integrated-ci-registry-secrets-deploy-rollback-scaling-cost",
+    "production-runtime-feedback-into-system-graph",
+    "first-class-ssh-container-remote-workspaces",
+    "recovery-as-architecture",
+    "measured-low-resource-operation",
+    "graceful-degradation-at-10x-and-100x",
+    "hard-ai-cost-budgets",
+    "enterprise-identity-rbac-policy-audit-governance",
+    "lsp-dap-mcp-acp-open-interoperability",
+    "developer-owned-durable-evidence",
+    "ci-enforced-verification-gates",
+    "repository-cartography-and-legacy-risk",
+    "success-evidence-attached-to-engineering-work"
+  ],
+  "systemChain": [
+    "source", "symbols", "dependencies", "build", "runtime", "memory", "data", "network", "infrastructure", "deployment", "production-behavior"
+  ],
+  "executionLevels": [
+    "OBSERVE", "PLAN", "SAFE_EDIT", "SANDBOX_EXECUTE", "WORKSPACE_EXECUTE", "PRIVILEGED", "EXTERNAL_SIDE_EFFECT", "PRODUCTION"
+  ],
+  "proofRule": "No superiority or completion claim is PASS without executable, externally inspectable, or measured comparative evidence.",
+  "scaleRule": ["1x", "10x", "100x", "success-too-well"],
+  "finalGate": [
+    "fresh-machine", "download", "install", "authenticate", "open-repository", "edit", "save", "terminal", "git", "debug", "ai-task", "agent-change", "tests", "commit", "restart", "restore", "update"
+  ]
+}
