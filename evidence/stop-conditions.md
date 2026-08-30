@@ -1,0 +1,1 @@
+Cortex must HALT or degrade explicitly when authority, required evidence, provider availability, sandbox containment, workspace integrity or production prerequisites are insufficient. It must not continue by silently widening authority or inventing evidence.
