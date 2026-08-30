@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { PromptBoundary } from './security-kernel.js';
+import { EngineeringKnowledgeStore, WorkOrder, VerificationPack, ClosedLoopEngineeringCycle } from './software-factory.js';
 
 const clone = (value) => globalThis.structuredClone(value);
 
@@ -44,7 +45,7 @@ export class ContextAssembler {
 }
 
 export class EngineeringRuntime {
-  constructor({ orchestrator, modelRuntime, tools = new ToolRegistry(), contextAssembler = new ContextAssembler(), qualificationGate = null, ledger = null } = {}) {
+  constructor({ orchestrator, modelRuntime, tools = new ToolRegistry(), contextAssembler = new ContextAssembler(), qualificationGate = null, ledger = null, knowledge = new EngineeringKnowledgeStore() } = {}) {
     if (!orchestrator || !modelRuntime) throw new Error('engineering runtime requires orchestrator and model runtime');
     this.orchestrator = orchestrator;
     this.modelRuntime = modelRuntime;
@@ -52,35 +53,116 @@ export class EngineeringRuntime {
     this.contextAssembler = contextAssembler;
     this.qualificationGate = qualificationGate;
     this.ledger = ledger;
+    this.knowledge = knowledge;
   }
 
   async run(input, { token = null, preferredModels = [], signal = null, accountId = 'local', budgetUsd = Infinity, approved = false } = {}) {
     const route = this.orchestrator.route(input);
-    if (route.requiresApproval && !approved) return { status: 'approval-required', route };
-    const task = this.ledger?.begin({ goal: input, metadata: { route } });
-    const context = await this.contextAssembler.assemble(route.contextSources, route);
-    if (!context.release.allowed) {
-      this.ledger?.finish(task.id, { status: 'failed', outcome: 'context-release-denied', evidence: context.release.findings });
-      return { status: 'blocked', reason: 'context-release-denied', findings: context.release.findings, route };
+    const requiredEvidence = route.requiresVerification
+      ? [...new Set([...(this.qualificationGate?.required ?? ['independent-verification']), 'model'])]
+      : ['model'];
+    const workOrder = new WorkOrder({
+      goal: input,
+      inputs: route.contextSources ?? [],
+      expectedOutputs: ['evidence-backed engineering outcome'],
+      wiringNotes: (route.tools ?? []).map((tool) => ({ tool })),
+      verification: requiredEvidence,
+      authority: route.executionLevel ?? (route.requiresApproval ? 'EXTERNAL_SIDE_EFFECT' : 'SAFE_EDIT'),
+      metadata: { depth: route.depth, agents: route.agents ?? [] },
+    });
+    const verificationPack = new VerificationPack({ workOrderId: workOrder.id, required: requiredEvidence });
+    const cycle = new ClosedLoopEngineeringCycle({ workOrder, knowledge: this.knowledge });
+    cycle.record({ route }, { evidence: { type: 'intent-routing' } });
+
+    if (route.requiresApproval && !approved) {
+      workOrder.addAction({ type: 'authorization.required', executionLevel: workOrder.authority });
+      return { status: 'approval-required', route, workOrder: workOrder.snapshot(), verificationPack: verificationPack.snapshot(), cycle: cycle.snapshot() };
     }
+
+    workOrder.transition('authorized');
+    cycle.advance('decide');
+    cycle.record({ contextSources: route.contextSources ?? [], tools: route.tools ?? [], agents: route.agents ?? [] });
+    const task = this.ledger?.begin({ goal: input, metadata: { route, workOrderId: workOrder.id } });
+    const context = await this.contextAssembler.assemble(route.contextSources ?? [], route);
+    if (!context.release.allowed) {
+      workOrder.addAction({ type: 'context.blocked', findings: context.release.findings });
+      workOrder.transition('halted');
+      verificationPack.addEvidence('context-release', context.release.findings, { ok: false, source: 'context-boundary' });
+      if (task) this.ledger?.finish(task.id, { status: 'failed', outcome: 'context-release-denied', evidence: context.release.findings });
+      return { status: 'blocked', reason: 'context-release-denied', findings: context.release.findings, route, workOrder: workOrder.snapshot(), verificationPack: verificationPack.snapshot(), cycle: cycle.snapshot() };
+    }
+
     const evidence = [];
     const toolResults = [];
     try {
-      for (const toolName of route.tools.filter((name) => this.tools.tools.has(name))) {
+      cycle.advance('act');
+      workOrder.transition('executing');
+      for (const toolName of (route.tools ?? []).filter((name) => this.tools.tools.has(name))) {
         if (signal?.aborted) throw signal.reason ?? new Error('engineering task cancelled');
-        const execution = await this.tools.execute(toolName, { input }, { token, signal, context: { route } });
+        const execution = await this.tools.execute(toolName, { input }, { token, signal, context: { route, workOrderId: workOrder.id } });
         toolResults.push(execution);
-        if (execution.evidenceType) evidence.push({ type: execution.evidenceType, ok: execution.result?.ok !== false, tool: toolName, result: execution.result });
-        this.ledger?.record(task.id, 'tool.executed', { tool: toolName, evidenceType: execution.evidenceType });
+        workOrder.addAction({ type: 'tool.executed', tool: toolName, evidenceType: execution.evidenceType });
+        if (execution.evidenceType) {
+          const item = { type: execution.evidenceType, ok: execution.result?.ok !== false, tool: toolName, result: execution.result };
+          evidence.push(item);
+          verificationPack.addEvidence(item.type, item.result, { ok: item.ok, source: toolName });
+        }
+        if (task) this.ledger?.record(task.id, 'tool.executed', { tool: toolName, evidenceType: execution.evidenceType });
       }
 
-      const response = await this.modelRuntime.generate({ input, route, context: context.parts, toolResults }, { preferred: preferredModels, accountId, budgetUsd });
-      evidence.push({ type: 'model', ok: true, provider: response.provider });
-      const qualification = this.qualificationGate ? this.qualificationGate.evaluate(evidence) : { ok: true, missing: [], failures: [] };
-      const status = route.requiresVerification && !qualification.ok ? 'verification-required' : 'completed';
-      this.ledger?.finish(task.id, { status: status === 'completed' ? 'passed' : 'failed', outcome: response.result, evidence });
-      return { id: task?.id ?? crypto.randomUUID(), status, route, result: response.result, provider: response.provider, costUsd: response.costUsd, toolResults, evidence, qualification };
+      const response = await this.modelRuntime.generate({ input, route, context: context.parts, toolResults, workOrder: workOrder.snapshot() }, { preferred: preferredModels, accountId, budgetUsd });
+      const modelEvidence = { type: 'model', ok: true, provider: response.provider };
+      evidence.push(modelEvidence);
+      verificationPack.addEvidence('model', { provider: response.provider, costUsd: response.costUsd }, { source: response.provider });
+
+      cycle.advance('observe');
+      cycle.record({ provider: response.provider, toolResults: toolResults.map(({ tool, evidenceType }) => ({ tool, evidenceType })) }, { evidence: modelEvidence });
+      workOrder.transition('verifying');
+      cycle.advance('verify');
+
+      const qualification = this.qualificationGate
+        ? this.qualificationGate.evaluate(evidence)
+        : route.requiresVerification
+          ? { ok: false, missing: ['independent-verification'], failures: [] }
+          : { ok: true, missing: [], failures: [] };
+
+      cycle.record({ qualification }, { evidence: { type: 'qualification', ok: qualification.ok } });
+      const packQualification = verificationPack.evaluate();
+      const status = route.requiresVerification && (!qualification.ok || !packQualification.ok) ? 'verification-required' : 'completed';
+      const claim = verificationPack.claim(`Engineering outcome for: ${input}`);
+
+      if (status === 'completed') workOrder.transition('passed');
+      else workOrder.transition('failed');
+
+      cycle.advance('learn');
+      cycle.record({ status, qualification, verification: packQualification });
+      cycle.advance('preserve');
+      const knowledgeState = route.requiresVerification && status === 'completed' ? 'verified' : 'inferred';
+      cycle.preserve(`work-order:${workOrder.id}`, {
+        goal: input,
+        route,
+        outcome: response.result,
+        qualification,
+        verification: packQualification,
+      }, {
+        state: knowledgeState,
+        confidence: knowledgeState === 'verified' ? 1 : 0.6,
+        evidence: verificationPack.snapshot().evidence,
+        provenance: [{ type: 'work-order', id: workOrder.id }],
+        ttlMs: knowledgeState === 'verified' ? Infinity : undefined,
+      });
+
+      if (task) this.ledger?.finish(task.id, { status: status === 'completed' ? 'passed' : 'failed', outcome: response.result, evidence });
+      return {
+        id: task?.id ?? crypto.randomUUID(), status, route, result: response.result, provider: response.provider,
+        costUsd: response.costUsd, toolResults, evidence, qualification,
+        workOrder: workOrder.snapshot(), verificationPack: verificationPack.snapshot(), verificationClaim: claim, cycle: cycle.snapshot(),
+      };
     } catch (error) {
+      this.knowledge.recordFailure(`${route.depth ?? 'unknown'}:${error.name}`, { goal: input, message: error.message, workOrderId: workOrder.id });
+      workOrder.addAction({ type: 'execution.failed', message: error.message });
+      if (workOrder.status === 'executing') workOrder.transition('halted');
+      else if (workOrder.status === 'verifying') workOrder.transition('failed');
       if (task) this.ledger?.finish(task.id, { status: signal?.aborted ? 'cancelled' : 'failed', outcome: error.message, evidence });
       throw error;
     }
