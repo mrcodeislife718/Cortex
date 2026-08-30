@@ -40,5 +40,10 @@
     "category": "DeveloperTool",
     "shortDescription": "AI-native systems-aware IDE",
     "longDescription": "Cortex is a developer-first AI-native IDE with system-level engineering intelligence."
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "CORTEX_RELEASE_UPDATER_KEY_REQUIRED"
+    }
   }
 }
