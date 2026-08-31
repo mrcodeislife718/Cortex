@@ -1,117 +1,41 @@
 {
-  "version": 2,
+  "version": 3,
   "product": "Cortex",
-  "thesis": "A verifiable software factory disguised as an easy-to-use IDE.",
+  "thesis": "A full-freedom AI-native development environment with a verifiable software factory available underneath, never imposed on top.",
   "baseline": [
-    "VS Code-level professional IDE completeness",
+    "VS Code-level professional IDE completeness and user freedom",
     "Cursor-level AI coding and agentic execution",
     "Replit-level integrated execution and deployment assistance",
     "JetBrains-level semantic understanding and refactoring safety",
     "Zed-level responsiveness and efficiency"
   ],
   "userExperience": {
-    "principle": "power-underneath-simplicity-on-top",
-    "entry": "Open Cortex. Open an existing repository or create a new project from scratch. Start working.",
+    "principle": "freedom-first-power-underneath-simplicity-on-top",
+    "entry": "Open Cortex. Work on a file, a folder, an untitled buffer, a local project, a repository, a remote workspace, or create something new. Version control is optional.",
     "intentExample": "Fix this.",
-    "forbiddenModeBurden": ["Ask", "Plan", "Agent", "Debug"]
+    "forbiddenModeBurden": ["Ask", "Plan", "Agent", "Debug"],
+    "freedomRule": "Cortex must not require a repository, Git initialization, a project manifest, a framework, an account, a cloud workspace, a build system, or Cortex-specific metadata for ordinary editing and local development."
   },
-  "projectLifecycle": {
-    "rule": "Cortex must never require an existing repository. Greenfield creation and existing-project development are equally first-class.",
-    "existingProject": [
-      "open-folder", "open-repository", "clone-repository", "workspace-trust", "detect-toolchain", "detect-tasks", "detect-debuggers", "detect-version-control"
-    ],
-    "greenfieldProject": [
-      "new-empty-folder", "new-file", "new-directory", "save-as", "initialize-git", "clone-into-workspace", "open-terminal", "run-scaffolding-command", "select-or-detect-runtime", "install-dependencies", "run-task", "debug", "test", "commit", "push", "build", "package", "deploy-assistance"
-    ],
-    "editingBaseline": [
-      "multi-file-tabs", "split-editors", "undo-redo", "cut-copy-paste", "find-replace", "workspace-search-replace", "go-to-file", "go-to-symbol", "go-to-definition", "references", "rename", "format", "diagnostics", "code-actions", "autocomplete", "snippets", "breadcrumbs", "minimap", "folding", "multi-cursor", "column-selection", "encoding-and-line-endings", "autosave", "hot-exit-recovery"
-    ],
-    "developerToolsBaseline": [
-      "integrated-pty-terminal", "multiple-terminals", "tasks", "test-explorer", "problems", "output", "debug-console", "breakpoints", "conditional-breakpoints", "watch", "variables", "call-stack", "source-control", "diff", "stage", "unstage", "commit", "branches", "merge", "rebase", "fetch", "pull", "push", "history", "stash", "tags", "remotes"
-    ],
-    "configurationBaseline": [
-      "settings", "workspace-settings", "keyboard-shortcuts", "themes", "language-configuration", "extension-management", "command-palette", "profiles-or-equivalent-portable-configuration"
-    ],
-    "nonRegressionRule": "Cortex superiority work may add capabilities or replace internals, but may not remove ordinary professional IDE functionality required to build a project from an empty directory through source control, testing, debugging, packaging and deployment."
+  "workspaceLifecycle": {
+    "rule": "The workspace is the unit of user freedom; a repository is only one optional capability that may exist inside it.",
+    "entryModes": ["empty-window", "untitled-buffer", "single-file", "open-folder", "multi-root-workspace", "local-project", "open-repository", "clone-repository", "remote-workspace", "container-workspace", "new-project"],
+    "repositoryOptional": true,
+    "gitOptional": true,
+    "accountOptionalForLocalDevelopment": true,
+    "projectManifestOptional": true,
+    "existingContent": ["open-file", "open-folder", "open-workspace", "open-repository", "clone-repository", "workspace-trust", "detect-toolchain-if-present", "detect-tasks-if-present", "detect-debuggers-if-present", "detect-version-control-if-present"],
+    "greenfield": ["new-untitled-file", "new-empty-folder", "new-file", "new-directory", "save", "save-as", "optional-initialize-git", "optional-scaffolding", "open-terminal", "select-or-detect-runtime", "optional-install-dependencies", "run-task-if-present", "debug", "test", "optional-commit", "optional-push", "build", "package", "deploy-assistance"],
+    "nonRepositoryWorkflow": ["edit-without-git", "run-without-git", "debug-without-git", "test-without-git", "terminal-without-git", "build-without-git", "save-anywhere-with-permission", "use-language-tools-without-git", "use-ai-without-git-when-model-access-is-available"],
+    "editingBaseline": ["multi-file-tabs", "split-editors", "undo-redo", "cut-copy-paste", "find-replace", "workspace-search-replace", "go-to-file", "go-to-symbol", "go-to-definition", "references", "rename", "format", "diagnostics", "code-actions", "autocomplete", "snippets", "breadcrumbs", "minimap", "folding", "multi-cursor", "column-selection", "encoding-and-line-endings", "autosave", "hot-exit-recovery"],
+    "developerToolsBaseline": ["integrated-pty-terminal", "multiple-terminals", "tasks", "test-explorer", "problems", "output", "debug-console", "breakpoints", "conditional-breakpoints", "watch", "variables", "call-stack", "optional-source-control", "diff", "stage", "unstage", "commit", "branches", "merge", "rebase", "fetch", "pull", "push", "history", "stash", "tags", "remotes"],
+    "configurationBaseline": ["settings", "workspace-settings", "keyboard-shortcuts", "themes", "language-configuration", "extension-management", "command-palette", "profiles-or-equivalent-portable-configuration"],
+    "nonRegressionRule": "Cortex superiority work may add capabilities or replace internals, but may not remove ordinary professional IDE freedom. A user must be able to use Cortex productively without Git, without a repository, without AI, and without Cortex-specific project structure."
   },
-  "completionAreas": [
-    "greenfield-project-creation",
-    "existing-project-and-repository-opening",
-    "complete-professional-editor-baseline",
-    "file-and-workspace-lifecycle",
-    "real-repository-qualification",
-    "terminal-and-task-execution",
-    "language-intelligence",
-    "git-workflow",
-    "debugger",
-    "testing-workflow",
-    "cortex-intelligence",
-    "agent-execution",
-    "extensions",
-    "system-graph",
-    "remote-and-container-development",
-    "build-package-and-deploy-workflow",
-    "performance-and-low-memory-qualification",
-    "security-qualification",
-    "desktop-polish",
-    "distribution",
-    "commercial-system",
-    "fresh-machine-final-qualification"
-  ],
-  "superiorityLayers": [
-    "system-graph-over-file-only-understanding",
-    "persistent-evidence-backed-engineering-knowledge",
-    "closed-loop-reason-decide-act-observe-verify-learn-preserve",
-    "work-orders-wiring-notes-verification-packs",
-    "proposal-validation-authorization-execution-verification",
-    "no-model-declared-completion",
-    "specialized-dependency-aware-multi-agent-engineering",
-    "separate-working-task-durable-evidence-and-failure-memory",
-    "failure-learning",
-    "provider-and-model-independence",
-    "quality-latency-cost-privacy-aware-model-routing",
-    "graph-and-budget-driven-context-not-context-dumping",
-    "local-ai-where-qualified",
-    "intent-first-interaction",
-    "constrained-autonomy-and-halt",
-    "execution-authority-levels",
-    "repository-content-is-data-not-authority",
-    "secrets-are-not-automatic-context",
-    "independent-adversarial-verification",
-    "failure-locality",
-    "transactional-reviewable-reversible-ai-changes",
-    "vscode-ecosystem-reach-with-independent-internals",
-    "per-extension-resource-attribution",
-    "extension-capability-containment-signatures-quarantine-rollback",
-    "verified-marketplace",
-    "deep-rebuildable-semantic-intelligence",
-    "edit-run-inspect-debug-deploy-loop",
-    "integrated-ci-registry-secrets-deploy-rollback-scaling-cost",
-    "production-runtime-feedback-into-system-graph",
-    "first-class-ssh-container-remote-workspaces",
-    "recovery-as-architecture",
-    "measured-low-resource-operation",
-    "graceful-degradation-at-10x-and-100x",
-    "hard-ai-cost-budgets",
-    "enterprise-identity-rbac-policy-audit-governance",
-    "lsp-dap-mcp-acp-open-interoperability",
-    "developer-owned-durable-evidence",
-    "ci-enforced-verification-gates",
-    "repository-cartography-and-legacy-risk",
-    "success-evidence-attached-to-engineering-work"
-  ],
-  "systemChain": [
-    "source", "symbols", "dependencies", "build", "runtime", "memory", "data", "network", "infrastructure", "deployment", "production-behavior"
-  ],
-  "executionLevels": [
-    "OBSERVE", "PLAN", "SAFE_EDIT", "SANDBOX_EXECUTE", "WORKSPACE_EXECUTE", "PRIVILEGED", "EXTERNAL_SIDE_EFFECT", "PRODUCTION"
-  ],
+  "completionAreas": ["freedom-first-non-repository-workflows", "empty-window-and-untitled-editing", "single-file-editing", "greenfield-project-creation", "existing-folder-project-and-repository-opening", "multi-root-workspaces", "complete-professional-editor-baseline", "file-and-workspace-lifecycle", "real-repository-qualification", "terminal-and-task-execution", "language-intelligence", "optional-git-workflow", "debugger", "testing-workflow", "cortex-intelligence", "agent-execution", "extensions", "system-graph", "remote-and-container-development", "build-package-and-deploy-workflow", "performance-and-low-memory-qualification", "security-qualification", "desktop-polish", "distribution", "commercial-system", "fresh-machine-final-qualification"],
+  "superiorityLayers": ["system-graph-over-file-only-understanding", "persistent-evidence-backed-engineering-knowledge", "closed-loop-reason-decide-act-observe-verify-learn-preserve", "work-orders-wiring-notes-verification-packs", "proposal-validation-authorization-execution-verification", "no-model-declared-completion", "specialized-dependency-aware-multi-agent-engineering", "separate-working-task-durable-evidence-and-failure-memory", "failure-learning", "provider-and-model-independence", "quality-latency-cost-privacy-aware-model-routing", "graph-and-budget-driven-context-not-context-dumping", "local-ai-where-qualified", "intent-first-interaction", "constrained-autonomy-and-halt", "execution-authority-levels", "workspace-content-is-data-not-authority", "secrets-are-not-automatic-context", "independent-adversarial-verification", "failure-locality", "transactional-reviewable-reversible-ai-changes", "vscode-ecosystem-reach-with-independent-internals", "per-extension-resource-attribution", "extension-capability-containment-signatures-quarantine-rollback", "verified-marketplace", "deep-rebuildable-semantic-intelligence", "edit-run-inspect-debug-deploy-loop", "integrated-ci-registry-secrets-deploy-rollback-scaling-cost", "production-runtime-feedback-into-system-graph", "first-class-ssh-container-remote-workspaces", "recovery-as-architecture", "measured-low-resource-operation", "graceful-degradation-at-10x-and-100x", "hard-ai-cost-budgets", "enterprise-identity-rbac-policy-audit-governance", "lsp-dap-mcp-acp-open-interoperability", "developer-owned-durable-evidence", "ci-enforced-verification-gates", "workspace-cartography-and-legacy-risk", "success-evidence-attached-to-engineering-work"],
+  "systemChain": ["source", "symbols", "dependencies", "build", "runtime", "memory", "data", "network", "infrastructure", "deployment", "production-behavior"],
+  "executionLevels": ["OBSERVE", "PLAN", "SAFE_EDIT", "SANDBOX_EXECUTE", "WORKSPACE_EXECUTE", "PRIVILEGED", "EXTERNAL_SIDE_EFFECT", "PRODUCTION"],
   "proofRule": "No superiority or completion claim is PASS without executable, externally inspectable, or measured comparative evidence.",
   "scaleRule": ["1x", "10x", "100x", "success-too-well"],
-  "finalGate": [
-    "fresh-machine", "download", "install", "authenticate",
-    "create-empty-project", "create-file", "create-directory", "save-as", "initialize-git", "scaffold-project", "install-dependencies",
-    "open-repository", "clone-repository", "edit", "save", "search-replace", "terminal", "tasks", "tests", "git", "debug", "extensions",
-    "ai-task", "agent-change", "build", "package", "deploy-assistance", "commit", "push", "restart", "restore", "update"
-  ]
+  "finalGate": ["fresh-machine", "download", "install", "open-empty-window", "create-untitled-file", "edit-single-file-without-repository", "save-as-without-repository", "open-folder-without-git", "terminal-without-git", "debug-without-git", "test-without-git", "create-empty-project", "create-file", "create-directory", "optional-initialize-git", "optional-scaffold-project", "optional-install-dependencies", "open-repository", "clone-repository", "edit", "save", "search-replace", "terminal", "tasks", "tests", "optional-git", "debug", "extensions", "ai-task", "agent-change", "build", "package", "deploy-assistance", "optional-commit", "optional-push", "restart", "restore", "update"]
 }
