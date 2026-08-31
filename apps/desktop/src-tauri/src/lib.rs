@@ -29,6 +29,9 @@ struct WorkspaceEntry { name: String, relative_path: String, is_directory: bool,
 #[derive(Serialize)]
 struct SearchMatch { relative_path: String, line: usize, preview: String }
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReplaceSummary { files_changed: usize, replacements: usize }
+#[derive(Serialize)]
 pub(crate) struct CommandResult { ok: bool, code: Option<i32>, stdout: String, stderr: String }
 #[derive(Deserialize)]
 struct ActivationResponse { token: String }
@@ -63,6 +66,15 @@ fn list_workspace(relative: Option<String>, state: State<'_, WorkspaceState>) ->
 }
 
 #[tauri::command]
+fn list_workspace_files(state: State<'_, WorkspaceState>) -> Result<Vec<String>, String> {
+    let root = workspace_root(&state)?;
+    let mut files = Vec::new();
+    walk_files(&root, &root, &mut files, 100_000)?;
+    files.sort();
+    Ok(files)
+}
+
+#[tauri::command]
 fn read_workspace_file(relative: String, state: State<'_, WorkspaceState>) -> Result<String, String> {
     let root = workspace_root(&state)?;
     let target = resolve_existing(&root, &relative)?;
@@ -90,6 +102,33 @@ fn search_workspace(query: String, state: State<'_, WorkspaceState>) -> Result<V
     let mut matches = Vec::new();
     walk_search(&root, &root, &query, &mut matches, 500)?;
     Ok(matches)
+}
+
+#[tauri::command]
+fn replace_workspace(query: String, replacement: String, state: State<'_, WorkspaceState>) -> Result<ReplaceSummary, String> {
+    if query.is_empty() || query.len() > 256 { return Err("replace query must be 1-256 characters".into()); }
+    if replacement.len() > 8192 { return Err("replacement exceeds Cortex limit".into()); }
+    let root = workspace_root(&state)?;
+    let mut files = Vec::new();
+    walk_files(&root, &root, &mut files, 100_000)?;
+    let mut files_changed = 0usize;
+    let mut replacements = 0usize;
+    for relative in files {
+        let target = root.join(&relative);
+        let Ok(metadata) = fs::metadata(&target) else { continue; };
+        if metadata.len() > 2 * 1024 * 1024 { continue; }
+        let Ok(text) = fs::read_to_string(&target) else { continue; };
+        let count = text.matches(&query).count();
+        if count == 0 { continue; }
+        let updated = text.replace(&query, &replacement);
+        let suffix = target.extension().and_then(|value| value.to_str()).unwrap_or("file");
+        let temp = target.with_extension(format!("{suffix}.cortex-replace-tmp"));
+        fs::write(&temp, updated).map_err(|error| error.to_string())?;
+        fs::rename(&temp, &target).map_err(|error| error.to_string())?;
+        files_changed += 1;
+        replacements += count;
+    }
+    Ok(ReplaceSummary { files_changed, replacements })
 }
 
 #[tauri::command]
@@ -154,6 +193,20 @@ fn validate_api_url(value: &str) -> Result<String, String> {
 pub(crate) fn workspace_root(state: &State<'_, WorkspaceState>) -> Result<PathBuf, String> { state.0.lock().map_err(|_| "workspace state poisoned")?.clone().ok_or_else(|| "no workspace is open".into()) }
 fn resolve_existing(root: &Path, relative: &str) -> Result<PathBuf, String> { let candidate = fs::canonicalize(root.join(relative)).map_err(|error| error.to_string())?; if !candidate.starts_with(root) { return Err("workspace path escape denied".into()); } Ok(candidate) }
 fn resolve_for_write(root: &Path, relative: &str) -> Result<PathBuf, String> { let raw = root.join(relative); let parent = raw.parent().ok_or("invalid workspace path")?; let canonical_parent = fs::canonicalize(parent).map_err(|error| error.to_string())?; if !canonical_parent.starts_with(root) { return Err("workspace path escape denied".into()); } Ok(canonical_parent.join(raw.file_name().ok_or("invalid file name")?)) }
+fn walk_files(root: &Path, dir: &Path, output: &mut Vec<String>, limit: usize) -> Result<(), String> {
+    if output.len() >= limit { return Ok(()); }
+    for entry in fs::read_dir(dir).map_err(|error| error.to_string())? {
+        if output.len() >= limit { break; }
+        let entry = entry.map_err(|error| error.to_string())?;
+        let name = entry.file_name().to_string_lossy().to_string();
+        if is_ignored(&name) { continue; }
+        let path = entry.path();
+        let metadata = entry.metadata().map_err(|error| error.to_string())?;
+        if metadata.is_dir() { walk_files(root, &path, output, limit)?; }
+        else if metadata.is_file() { output.push(path.strip_prefix(root).map_err(|_| "workspace path escape")?.to_string_lossy().replace('\\', "/")); }
+    }
+    Ok(())
+}
 fn walk_search(root: &Path, dir: &Path, query: &str, output: &mut Vec<SearchMatch>, limit: usize) -> Result<(), String> {
     if output.len() >= limit { return Ok(()); }
     for entry in fs::read_dir(dir).map_err(|error| error.to_string())? {
@@ -192,7 +245,7 @@ pub fn run() {
         .manage(protocol_host::ProtocolHost::default())
         .manage(pty::PtyHost::default())
         .invoke_handler(tauri::generate_handler![
-            runtime_info, set_workspace, list_workspace, read_workspace_file, write_workspace_file, search_workspace, git_status, run_workspace_command,
+            runtime_info, set_workspace, list_workspace, list_workspace_files, read_workspace_file, write_workspace_file, search_workspace, replace_workspace, git_status, run_workspace_command,
             has_commercial_session, clear_commercial_session, redeem_activation, commercial_entitlements, commercial_assistant,
             updater::check_for_updates, updater::install_pending_update,
             workspace_ops::create_workspace_file, workspace_ops::create_workspace_directory, workspace_ops::rename_workspace_entry, workspace_ops::delete_workspace_entry,
