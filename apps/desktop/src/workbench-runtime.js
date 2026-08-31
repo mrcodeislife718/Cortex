@@ -3,7 +3,6 @@ import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import 'monaco-editor/min/vs/editor/editor.main.css';
 import '@xterm/xterm/css/xterm.css';
 import './styles.css';
 
