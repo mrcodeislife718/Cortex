@@ -35,8 +35,12 @@ async function createProject() {
     const projectPath = `${String(parent).replace(/[\\/]$/, '')}${separator}${name}`;
     await window.CortexWorkbench?.setWorkspace?.(projectPath);
 
-    const readme = globalThis.confirm('Create a README.md starter file?');
-    if (readme) {
+    if (globalThis.confirm('Initialize this project as a Git repository?')) {
+      const result = await invoke('run_workspace_command', { command: 'git', args: ['init'] });
+      if (!result?.ok) throw new Error(result?.stderr || 'git init failed');
+    }
+
+    if (globalThis.confirm('Create a README.md starter file?')) {
       await invoke('create_workspace_file', { relative: 'README.md' });
       await invoke('write_workspace_file', { relative: 'README.md', text: `# ${name}\n` });
       await window.CortexWorkbench?.openFile?.('README.md');
