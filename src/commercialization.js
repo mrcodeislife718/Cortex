@@ -3,23 +3,57 @@ const clone = (value) => globalThis.structuredClone(value);
 export const CortexPlans = Object.freeze({
   PRO: Object.freeze({
     id: 'pro',
-    monthlyUsd: 79,
-    annualUsd: 790,
     entitlements: ['ide.desktop','ai.hosted','ai.frontier','ai.multi-agent','project.memory','system.graph','remote.ssh','remote.container','profiling.advanced','deploy.preview'],
   }),
   TEAM: Object.freeze({
     id: 'team',
-    monthlyUsdPerSeat: 149,
-    annualUsdPerSeat: 1490,
     minimumSeats: 3,
     entitlements: ['ide.desktop','ai.hosted','ai.frontier','ai.multi-agent','project.memory','system.graph','remote.ssh','remote.container','remote.workspace','team.memory','team.policy','team.audit','profiling.advanced','deploy.preview','deploy.production'],
   }),
   ENTERPRISE: Object.freeze({
     id: 'enterprise',
-    annualMinimumUsd: 50000,
     entitlements: ['*'],
   }),
 });
+
+const PLAN_IDS = new Set(Object.values(CortexPlans).map((plan) => plan.id));
+
+export function commercialCatalogFromEnvironment(env = process.env) {
+  const raw = String(env.CORTEX_COMMERCIAL_CATALOG_JSON ?? '').trim();
+  if (!raw) return null;
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch { throw new Error('CORTEX_COMMERCIAL_CATALOG_JSON must be valid JSON'); }
+  return validateCommercialCatalog(parsed);
+}
+
+export function validateCommercialCatalog(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Cortex commercial catalog must be an object');
+  const currency = String(input.currency ?? '').trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(currency)) throw new Error('Cortex commercial catalog requires a three-letter currency');
+  const plans = input.plans;
+  if (!plans || typeof plans !== 'object' || Array.isArray(plans)) throw new Error('Cortex commercial catalog requires plans');
+  const normalized = { currency, plans: {} };
+  for (const planId of PLAN_IDS) {
+    const source = plans[planId];
+    if (!source || typeof source !== 'object' || Array.isArray(source)) throw new Error(`Cortex commercial catalog is missing ${planId}`);
+    if (planId === 'enterprise') {
+      normalized.plans.enterprise = { annualMinimum: positiveInteger(source.annualMinimum, 'enterprise annualMinimum') };
+      continue;
+    }
+    normalized.plans[planId] = {
+      monthly: positiveInteger(source.monthly, `${planId} monthly`),
+      annual: positiveInteger(source.annual, `${planId} annual`),
+      unit: planId === 'team' ? 'seat' : 'account',
+    };
+  }
+  return Object.freeze({ currency: normalized.currency, plans: Object.freeze(normalized.plans) });
+}
+
+function positiveInteger(value, label) {
+  const amount = Number(value);
+  if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error(`Cortex commercial catalog ${label} must be a positive integer in minor currency units`);
+  return amount;
+}
 
 export class EntitlementService {
   constructor({ plans = CortexPlans } = {}) { this.plans = plans; }
@@ -49,14 +83,17 @@ export class UsageMeter {
   total(accountId, metric) { return this.events.filter((event) => event.accountId === accountId && event.metric === metric).reduce((sum, event) => sum + event.quantity, 0); }
 }
 
-export function quoteCortex({ plan, seats = 1, annual = false }) {
+export function quoteCortex({ plan, seats = 1, annual = false, catalog }) {
   const selected = Object.values(CortexPlans).find((candidate) => candidate.id === plan);
   if (!selected) throw new Error('unknown Cortex plan');
-  if (selected.id === 'enterprise') return { plan, annualMinimumUsd: selected.annualMinimumUsd, negotiated: true };
+  if (!catalog) throw new Error('Cortex commercial catalog is not configured');
+  const offer = catalog.plans?.[plan];
+  if (!offer) throw new Error(`Cortex commercial catalog is missing ${plan}`);
+  if (selected.id === 'enterprise') return { plan, currency: catalog.currency, annualMinimum: offer.annualMinimum, negotiated: true };
   if (selected.id === 'team') {
-    if (seats < selected.minimumSeats) throw new Error(`team plan requires at least ${selected.minimumSeats} seats`);
-    const unit = annual ? selected.annualUsdPerSeat : selected.monthlyUsdPerSeat;
-    return { plan, seats, cadence: annual ? 'annual' : 'monthly', totalUsd: unit * seats };
+    if (!Number.isInteger(seats) || seats < selected.minimumSeats) throw new Error(`team plan requires at least ${selected.minimumSeats} seats`);
+    const unitAmount = annual ? offer.annual : offer.monthly;
+    return { plan, seats, cadence: annual ? 'annual' : 'monthly', currency: catalog.currency, unitAmount, totalAmount: unitAmount * seats };
   }
-  return { plan, seats: 1, cadence: annual ? 'annual' : 'monthly', totalUsd: annual ? selected.annualUsd : selected.monthlyUsd };
+  return { plan, seats: 1, cadence: annual ? 'annual' : 'monthly', currency: catalog.currency, totalAmount: annual ? offer.annual : offer.monthly };
 }
