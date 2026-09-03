@@ -37,16 +37,46 @@ export function validateCommercialCatalog(input) {
     const source = plans[planId];
     if (!source || typeof source !== 'object' || Array.isArray(source)) throw new Error(`Cortex commercial catalog is missing ${planId}`);
     if (planId === 'enterprise') {
-      normalized.plans.enterprise = { annualMinimum: positiveInteger(source.annualMinimum, 'enterprise annualMinimum') };
+      normalized.plans.enterprise = Object.freeze({ annualMinimum: positiveInteger(source.annualMinimum, 'enterprise annualMinimum') });
       continue;
     }
-    normalized.plans[planId] = {
+    normalized.plans[planId] = Object.freeze({
       monthly: positiveInteger(source.monthly, `${planId} monthly`),
       annual: positiveInteger(source.annual, `${planId} annual`),
       unit: planId === 'team' ? 'seat' : 'account',
-    };
+    });
   }
-  return Object.freeze({ currency: normalized.currency, plans: Object.freeze(normalized.plans) });
+  return Object.freeze({ currency, plans: Object.freeze(normalized.plans) });
+}
+
+export function cataloguedCortexPlans(catalog) {
+  if (!catalog) throw new Error('Cortex commercial catalog is not configured');
+  const usd = catalog.currency === 'USD';
+  const pro = catalog.plans.pro;
+  const team = catalog.plans.team;
+  const enterprise = catalog.plans.enterprise;
+  return Object.freeze({
+    PRO: Object.freeze({
+      ...CortexPlans.PRO,
+      currency: catalog.currency,
+      monthlyAmount: pro.monthly,
+      annualAmount: pro.annual,
+      ...(usd ? { monthlyUsd: pro.monthly / 100, annualUsd: pro.annual / 100 } : {}),
+    }),
+    TEAM: Object.freeze({
+      ...CortexPlans.TEAM,
+      currency: catalog.currency,
+      monthlyAmountPerSeat: team.monthly,
+      annualAmountPerSeat: team.annual,
+      ...(usd ? { monthlyUsdPerSeat: team.monthly / 100, annualUsdPerSeat: team.annual / 100 } : {}),
+    }),
+    ENTERPRISE: Object.freeze({
+      ...CortexPlans.ENTERPRISE,
+      currency: catalog.currency,
+      annualMinimumAmount: enterprise.annualMinimum,
+      ...(usd ? { annualMinimumUsd: enterprise.annualMinimum / 100 } : {}),
+    }),
+  });
 }
 
 function positiveInteger(value, label) {
@@ -89,11 +119,37 @@ export function quoteCortex({ plan, seats = 1, annual = false, catalog }) {
   if (!catalog) throw new Error('Cortex commercial catalog is not configured');
   const offer = catalog.plans?.[plan];
   if (!offer) throw new Error(`Cortex commercial catalog is missing ${plan}`);
-  if (selected.id === 'enterprise') return { plan, currency: catalog.currency, annualMinimum: offer.annualMinimum, negotiated: true };
+  const usd = catalog.currency === 'USD';
+  if (selected.id === 'enterprise') {
+    return {
+      plan,
+      currency: catalog.currency,
+      annualMinimumAmount: offer.annualMinimum,
+      ...(usd ? { annualMinimumUsd: offer.annualMinimum / 100 } : {}),
+      negotiated: true,
+    };
+  }
   if (selected.id === 'team') {
     if (!Number.isInteger(seats) || seats < selected.minimumSeats) throw new Error(`team plan requires at least ${selected.minimumSeats} seats`);
     const unitAmount = annual ? offer.annual : offer.monthly;
-    return { plan, seats, cadence: annual ? 'annual' : 'monthly', currency: catalog.currency, unitAmount, totalAmount: unitAmount * seats };
+    const totalAmount = unitAmount * seats;
+    return {
+      plan,
+      seats,
+      cadence: annual ? 'annual' : 'monthly',
+      currency: catalog.currency,
+      unitAmount,
+      totalAmount,
+      ...(usd ? { totalUsd: totalAmount / 100 } : {}),
+    };
   }
-  return { plan, seats: 1, cadence: annual ? 'annual' : 'monthly', currency: catalog.currency, totalAmount: annual ? offer.annual : offer.monthly };
+  const totalAmount = annual ? offer.annual : offer.monthly;
+  return {
+    plan,
+    seats: 1,
+    cadence: annual ? 'annual' : 'monthly',
+    currency: catalog.currency,
+    totalAmount,
+    ...(usd ? { totalUsd: totalAmount / 100 } : {}),
+  };
 }
