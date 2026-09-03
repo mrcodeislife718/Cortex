@@ -7,7 +7,7 @@ import {
   CortexSystemGraph, CapabilitySecurityKernel, SecretBoundary, PromptBoundary,
   ModelFabric, AgentLedger, EngineeringTaskGraph, QualificationGate,
   AtomicJsonStore, ProjectMemoryStore, RecoveryJournal,
-  CortexPlans, EntitlementService, quoteCortex,
+  CortexPlans, EntitlementService, quoteCortex, validateCommercialCatalog,
   MetricsRegistry, TraceRecorder, StructuredLogger,
 } from '../src/platform.js';
 
@@ -78,10 +78,19 @@ test('project memory and recovery journal persist atomically with integrity chec
 });
 
 test('commercialization has no free production tier and gates premium value', () => {
-  assert.equal(Object.values(CortexPlans).some((plan) => plan.monthlyUsd === 0 || plan.annualUsd === 0), false);
-  assert.equal(CortexPlans.PRO.monthlyUsd, 79);
-  assert.equal(quoteCortex({ plan: 'team', seats: 3 }).totalUsd, 447);
-  assert.throws(() => quoteCortex({ plan: 'team', seats: 2 }), /at least 3 seats/);
+  assert.equal(Object.values(CortexPlans).some((plan) => plan.id === 'free'), false);
+  assert.equal(Object.values(CortexPlans).some((plan) => Object.hasOwn(plan, 'monthlyUsd') || Object.hasOwn(plan, 'annualUsd') || Object.hasOwn(plan, 'annualMinimumUsd')), false);
+  const catalog = validateCommercialCatalog({
+    currency: 'USD',
+    plans: {
+      pro: { monthly: 7900, annual: 79000 },
+      team: { monthly: 14900, annual: 149000 },
+      enterprise: { annualMinimum: 5000000 },
+    },
+  });
+  assert.equal(quoteCortex({ plan: 'team', seats: 3, catalog }).totalUsd, 447);
+  assert.throws(() => quoteCortex({ plan: 'team', seats: 2, catalog }), /at least 3 seats/);
+  assert.throws(() => quoteCortex({ plan: 'pro' }), /catalog is not configured/);
   const entitlements = new EntitlementService();
   const active = { status: 'active', plan: 'pro' };
   assert.equal(entitlements.allows(active, 'ai.multi-agent'), true);
