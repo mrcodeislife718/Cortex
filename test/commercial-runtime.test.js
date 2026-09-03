@@ -3,8 +3,17 @@ import assert from 'node:assert/strict';
 import { CortexCommercialRuntime, CommercialHttpError } from '../src/commercial-runtime.js';
 import { SessionSigner } from '../src/account-service.js';
 import { ModelRuntime } from '../src/model-runtime.js';
+import { validateCommercialCatalog } from '../src/commercialization.js';
 
 const secret = 'cortex-commercial-test-secret-32-bytes-minimum';
+const catalog = validateCommercialCatalog({
+  currency: 'USD',
+  plans: {
+    pro: { monthly: 7900, annual: 79000 },
+    team: { monthly: 14900, annual: 149000 },
+    enterprise: { annualMinimum: 5000000 },
+  },
+});
 
 function runtimeFixture({
   subscription = { accountId: 'acct-1', status: 'active', plan: 'pro', seats: 1, providerCustomerId: 'cus_1' },
@@ -35,10 +44,16 @@ function runtimeFixture({
     webhookVerifier: { verify: (raw, signature) => ({ id: 'evt_1', type: 'customer.subscription.updated', raw, signature }) },
     repository,
     modelRuntime,
-    commercialConfig: { modelPreference: ['openai'], perRequestBudgetUsd: 5, monthlyAiBudgetByPlan: { pro: monthlyBudget } },
+    commercialConfig: { catalog, modelPreference: ['openai'], perRequestBudgetUsd: 5, monthlyAiBudgetByPlan: { pro: monthlyBudget } },
   });
   return { runtime, sessions, calls, usage, repository };
 }
+
+test('commercial catalog validates minor-unit amounts and fails closed when malformed', () => {
+  assert.equal(catalog.plans.pro.monthly, 7900);
+  assert.throws(() => validateCommercialCatalog({ currency: 'USD', plans: { pro: { monthly: 1, annual: 1 } } }), /missing team/);
+  assert.throws(() => validateCommercialCatalog({ currency: 'US', plans: {} }), /three-letter currency/);
+});
 
 test('commercial runtime creates authenticated Cortex session and resolves paid entitlements', async () => {
   const { runtime } = runtimeFixture();
@@ -56,6 +71,7 @@ test('commercial checkout uses authenticated account, configured price and plan 
   const token = sessions.issue({ subject: 'acct-1', claims: { email: 'dev@example.com' }, ttlSeconds: 3600 });
   const session = runtime.authenticate(`Bearer ${token}`);
   const result = await runtime.checkout({ session, plan: 'team', cadence: 'monthly', seats: 3, successUrl: 'https://cortex.dev/success', cancelUrl: 'https://cortex.dev/cancel', priceIds: { team_monthly: 'price_team' } });
+  assert.equal(result.quote.totalAmount, 44700);
   assert.equal(result.quote.totalUsd, 447);
   assert.equal(calls[0][1].clientReferenceId, 'acct-1');
   assert.equal(calls[0][1].plan, 'team');

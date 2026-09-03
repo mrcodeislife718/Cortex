@@ -1,6 +1,6 @@
 import { OidcPkceClient } from './oidc-identity.js';
 import { SessionSigner, StripeBillingAdapter, StripeWebhookVerifier, PostgresCommercialRepository } from './account-service.js';
-import { EntitlementService, CortexPlans, quoteCortex } from './commercialization.js';
+import { EntitlementService, CortexPlans, quoteCortex, commercialCatalogFromEnvironment } from './commercialization.js';
 import { PostgresStateStore } from './postgres-state.js';
 import { ModelRuntime } from './model-runtime.js';
 import { OpenAIResponsesProvider, AnthropicMessagesProvider, GeminiInteractionsProvider } from './model-providers.js';
@@ -26,6 +26,7 @@ export class CortexCommercialRuntime {
     this.orchestrator = orchestrator;
     this.promptBoundary = promptBoundary;
     this.commercialConfig = {
+      catalog: commercialConfig.catalog ?? null,
       modelPreference: [...(commercialConfig.modelPreference ?? [])],
       perRequestBudgetUsd: positiveNumberOr(commercialConfig.perRequestBudgetUsd, 5),
       monthlyAiBudgetByPlan: { ...(commercialConfig.monthlyAiBudgetByPlan ?? {}) },
@@ -33,7 +34,9 @@ export class CortexCommercialRuntime {
   }
 
   static async fromEnvironment(env = process.env) {
-    requireEnvironment(env, ['POSTGRES_URL','CORTEX_SESSION_SECRET','OIDC_ISSUER','OIDC_CLIENT_ID','OIDC_REDIRECT_URI','STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET']);
+    requireEnvironment(env, ['POSTGRES_URL','CORTEX_SESSION_SECRET','OIDC_ISSUER','OIDC_CLIENT_ID','OIDC_REDIRECT_URI','STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET','CORTEX_COMMERCIAL_CATALOG_JSON']);
+    const catalog = commercialCatalogFromEnvironment(env);
+    if (!catalog) throw new Error('Cortex commercial catalog is not configured');
     const store = await PostgresStateStore.connect({ connectionString: env.POSTGRES_URL, namespace: 'commercial' });
     await store.migrate();
     const modelRuntime = buildModelRuntime(env);
@@ -45,6 +48,7 @@ export class CortexCommercialRuntime {
       repository: new PostgresCommercialRepository({ pool: store.pool }),
       modelRuntime,
       commercialConfig: {
+        catalog,
         modelPreference: String(env.CORTEX_MODEL_PREFERENCE ?? '').split(',').map((value) => value.trim()).filter(Boolean),
         perRequestBudgetUsd: env.CORTEX_AI_PER_REQUEST_BUDGET_USD ? Number(env.CORTEX_AI_PER_REQUEST_BUDGET_USD) : 5,
         monthlyAiBudgetByPlan: {
@@ -68,11 +72,23 @@ export class CortexCommercialRuntime {
     try { return this.sessions.verify(match[1]); } catch { throw new CommercialHttpError(401, 'invalid_session'); }
   }
 
-  pricing() { return { plans: CortexPlans }; }
+  pricing() {
+    const catalog = this.commercialConfig.catalog;
+    return {
+      configured: Boolean(catalog),
+      currency: catalog?.currency ?? null,
+      plans: Object.values(CortexPlans).map((plan) => ({
+        id: plan.id,
+        minimumSeats: plan.minimumSeats ?? 1,
+        entitlements: [...plan.entitlements],
+        commercial: catalog?.plans?.[plan.id] ?? null,
+      })),
+    };
+  }
 
   async checkout({ session, plan, cadence = 'monthly', seats = 1, email = null, successUrl, cancelUrl, priceIds }) {
     const annual = cadence === 'annual';
-    const quote = quoteCortex({ plan, seats, annual });
+    const quote = quoteCortex({ plan, seats, annual, catalog: this.commercialConfig.catalog });
     if (plan === 'enterprise') throw new CommercialHttpError(400, 'enterprise_requires_sales');
     const priceKey = `${plan}_${annual ? 'annual' : 'monthly'}`;
     const priceId = priceIds?.[priceKey];
