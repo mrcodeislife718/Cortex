@@ -2,6 +2,8 @@
 
 Cortex is an AI-native, systems-aware software engineering environment. Its design target is broader than an AI code editor: Cortex maintains an evidence-backed model of the software lifecycle across source, symbols, dependencies, builds, tests, runtime, memory, data, infrastructure, deployment, and production behavior.
 
+Cortex is also the integrated IDE/control surface for the Cannon developer ecosystem: the role normally occupied by VS Code/Cursor-class tooling, but extended into whole-system understanding rather than text editing alone.
+
 ## Current repository status
 
 Cortex is under active construction and is **not yet production qualified**. The repository contains verified platform foundations and real ecosystem integration proofs, while the remaining launch blockers are tracked conservatively in [`PRODUCTION_QUALIFICATION.md`](./PRODUCTION_QUALIFICATION.md). Nothing is described as complete merely because code exists.
@@ -19,6 +21,24 @@ Cortex is under active construction and is **not yet production qualified**. The
 - integrity-checked atomic local persistence, project memory, and recovery journal;
 - premium commercial plans, entitlements, and usage metering;
 - metrics, tracing, and redacted structured logging.
+
+## Cannon developer ecosystem
+
+Cortex integrates the first-party stack without absorbing the responsibilities of the individual systems:
+
+- **Scout** — structured configuration/document editing, diagnostics, and language tooling;
+- **Cannon / Cannon+** — first-party programming languages;
+- **Nova** — compiler diagnostics, symbols, inference, source spans, provenance, and machine-readable compiler output;
+- **Parallel** — runtime execution, debugging, and runtime inspection;
+- **Plasma** — foreign/native boundary diagnostics and interop visibility;
+- **Cadence** — backend/web application development;
+- **Sprout** — UI application development;
+- **Velocity** — project creation, dev server, previews, local builds, devices, and target orchestration;
+- **Chronos** — remote builds, artifacts, releases, deployment evidence, updates, and rollback controls.
+
+Each sibling remains independently versioned, tested, and releasable. Cortex is the place where the stack becomes understandable and operable together.
+
+See [`ECOSYSTEM.md`](./ECOSYSTEM.md) for the explicit integration boundary.
 
 ## Architecture
 
