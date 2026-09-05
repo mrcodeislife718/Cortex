@@ -38,24 +38,8 @@ export class ExtensionPlatform {
   }
 
   uninstall(id) { return this.extensions.delete(id); }
-
-  enable(id) {
-    const state = this.#require(id);
-    state.enabled = true;
-    state.status = 'installed';
-    state.disabledReason = null;
-    return this.describe(id);
-  }
-
-  disable(id, reason = 'user') {
-    const state = this.#require(id);
-    state.enabled = false;
-    state.activated = false;
-    state.status = 'disabled';
-    state.disabledReason = reason;
-    return this.describe(id);
-  }
-
+  enable(id) { const state = this.#require(id); state.enabled = true; state.status = 'installed'; state.disabledReason = null; return this.describe(id); }
+  disable(id, reason = 'user') { const state = this.#require(id); state.enabled = false; state.activated = false; state.status = 'disabled'; state.disabledReason = reason; return this.describe(id); }
   list() { return [...this.extensions.keys()].map((id) => this.describe(id)); }
   describe(id) { return clone(this.#require(id)); }
 
@@ -87,20 +71,7 @@ export class ExtensionPlatform {
 
   health(id) {
     const state = this.#require(id);
-    return {
-      id,
-      status: state.status,
-      enabled: state.enabled,
-      activated: state.activated,
-      activations: state.activations,
-      failures: state.failures,
-      lastActivationMs: state.lastActivationMs,
-      lastError: state.lastError,
-      conflicts: clone(state.conflicts),
-      lastProcessId: state.lastProcessId ?? null,
-      lastStdoutBytes: state.lastStdoutBytes ?? 0,
-      lastStderrBytes: state.lastStderrBytes ?? 0,
-    };
+    return { id, status: state.status, enabled: state.enabled, activated: state.activated, activations: state.activations, failures: state.failures, lastActivationMs: state.lastActivationMs, lastError: state.lastError, conflicts: clone(state.conflicts), lastProcessId: state.lastProcessId ?? null, lastStdoutBytes: state.lastStdoutBytes ?? 0, lastStderrBytes: state.lastStderrBytes ?? 0 };
   }
 
   async #activateWith(id, { event, runtime, token }, operation) {
@@ -109,41 +80,20 @@ export class ExtensionPlatform {
     if (state.status === 'quarantined') throw new Error(`extension quarantined: ${id}`);
     if (!state.manifest.activationEvents.includes(event) && !state.manifest.activationEvents.includes('*')) throw new Error(`extension ${id} is not eligible for activation event ${event}`);
     if (runtime !== state.manifest.runtime) throw new Error(`extension ${id} requires ${state.manifest.runtime} runtime`);
-
     if (this.securityKernel && state.manifest.capabilities.length) {
-      for (const capability of state.manifest.capabilities) {
-        this.securityKernel.require(token, {
-          capability,
-          executionLevel: state.manifest.executionLevel,
-          resource: `extension:${id}`,
-        });
-      }
+      for (const capability of state.manifest.capabilities) this.securityKernel.require(token, { capability, executionLevel: state.manifest.executionLevel, resource: `extension:${id}` });
     }
-
     const started = this.clock();
     try {
       const api = await operation(state);
       const elapsed = Math.max(0, this.clock() - started);
       state.lastActivationMs = elapsed;
       if (elapsed > state.manifest.budgets.activationMs) {
-        state.failures++;
-        state.lastError = `activation budget exceeded: ${elapsed}ms > ${state.manifest.budgets.activationMs}ms`;
-        state.activated = false;
-        state.status = state.failures >= this.failureThreshold ? 'quarantined' : 'degraded';
-        throw new Error(state.lastError);
+        state.failures++; state.lastError = `activation budget exceeded: ${elapsed}ms > ${state.manifest.budgets.activationMs}ms`; state.activated = false; state.status = state.failures >= this.failureThreshold ? 'quarantined' : 'degraded'; throw new Error(state.lastError);
       }
-      state.activated = true;
-      state.status = 'active';
-      state.activations++;
-      state.lastError = null;
-      return api;
+      state.activated = true; state.status = 'active'; state.activations++; state.lastError = null; return api;
     } catch (error) {
-      if (!String(error?.message ?? error).startsWith('activation budget exceeded:')) {
-        state.failures++;
-        state.lastError = String(error?.message ?? error);
-        state.activated = false;
-        state.status = state.failures >= this.failureThreshold ? 'quarantined' : 'failed';
-      }
+      if (!String(error?.message ?? error).startsWith('activation budget exceeded:')) { state.failures++; state.lastError = String(error?.message ?? error); state.activated = false; state.status = state.failures >= this.failureThreshold ? 'quarantined' : 'failed'; }
       throw error;
     }
   }
@@ -156,19 +106,17 @@ export class ExtensionPlatform {
         if (!Array.isArray(values)) continue;
         const existing = state.manifest.contributions[kind];
         if (!Array.isArray(existing)) continue;
+        const existingIds = new Set(existing.map((value) => contributionIdentity(kind, value)).filter(Boolean));
         for (const value of values) {
-          if (existing.includes(value)) conflicts.push({ kind, value, with: state.manifest.id });
+          const identity = contributionIdentity(kind, value);
+          if (identity && existingIds.has(identity)) conflicts.push({ kind, value: identity, with: state.manifest.id });
         }
       }
     }
     return conflicts;
   }
 
-  #require(id) {
-    const state = this.extensions.get(id);
-    if (!state) throw new Error(`unknown extension: ${id}`);
-    return state;
-  }
+  #require(id) { const state = this.extensions.get(id); if (!state) throw new Error(`unknown extension: ${id}`); return state; }
 }
 
 function validateManifest(manifest) {
@@ -181,11 +129,18 @@ function validateManifest(manifest) {
   if (manifest.activationEvents.includes('*') && !manifest.startupJustification) throw new Error('wildcard startup activation requires explicit justification');
   const activationMs = manifest.budgets?.activationMs ?? 500;
   if (!Number.isFinite(activationMs) || activationMs <= 0) throw new Error('extension activation budget must be positive');
+  for (const command of manifest.contributions?.commands ?? []) if (!command?.id || !command?.title) throw new Error('extension commands require id and title');
 }
 
 function normalizeManifest(manifest) {
   return {
     id: manifest.id,
+    name: manifest.name ?? manifest.displayName ?? manifest.id,
+    displayName: manifest.displayName ?? manifest.name ?? manifest.id,
+    description: manifest.description ?? '',
+    publisher: manifest.publisher ?? null,
+    firstParty: Boolean(manifest.firstParty),
+    icon: manifest.icon ?? null,
     version: manifest.version,
     runtime: manifest.runtime,
     activationEvents: [...new Set(manifest.activationEvents)],
@@ -196,4 +151,12 @@ function normalizeManifest(manifest) {
     compatibility: { vscode: Boolean(manifest.compatibility?.vscode), apiVersion: manifest.compatibility?.apiVersion ?? null },
     contributions: clone(manifest.contributions ?? {}),
   };
+}
+
+function contributionIdentity(kind, value) {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object') return null;
+  if (kind === 'commands' || kind === 'views' || kind === 'languages') return value.id ?? null;
+  if (kind === 'keybindings') return `${value.key ?? ''}:${value.command ?? ''}:${value.when ?? ''}`;
+  return value.id ?? value.name ?? JSON.stringify(value);
 }
