@@ -17,7 +17,7 @@ export class ExtensionPackageVerifier {
     const digest = crypto.createHash('sha256').update(bytes).digest('hex');
     if (manifest.sha256 && manifest.sha256 !== digest) throw new Error('extension package checksum mismatch');
     const signed = `${manifest.id}\n${manifest.version}\n${digest}`;
-    if (!crypto.verify(null, Buffer.from(signed), publicKey, Buffer.from(signatureBase64, 'base64'))) throw new Error('extension package signature invalid');
+    if (typeof signatureBase64 !== 'string' || !signatureBase64 || !crypto.verify(null, Buffer.from(signed), publicKey, Buffer.from(signatureBase64, 'base64'))) throw new Error('extension package signature invalid');
     if (this.malwareScanner) {
       const scan = await this.malwareScanner({ manifest: clone(manifest), bytes });
       if (!scan?.clean) throw new Error(`extension package rejected by security scan: ${scan?.reason ?? 'unknown finding'}`);
@@ -33,19 +33,30 @@ export class TransactionalExtensionInstaller {
   }
   async install({ id, version, bytes, sha256 }) {
     validateId(id); validateVersion(version);
+    if (!Buffer.isBuffer(bytes)) throw new TypeError('extension artifact bytes must be a Buffer');
+    if (typeof sha256 !== 'string' || !/^[a-f0-9]{64}$/i.test(sha256)) throw new TypeError('extension artifact sha256 must be a 64-character hex digest');
     const digest = crypto.createHash('sha256').update(bytes).digest('hex');
-    if (digest !== sha256) throw new Error('extension artifact checksum mismatch');
+    if (digest !== sha256.toLowerCase()) throw new Error('extension artifact checksum mismatch');
     const extensionRoot = path.join(this.root, safeSegment(id));
     const releases = path.join(extensionRoot, 'releases');
     const target = path.join(releases, safeSegment(version), 'extension.pkg');
     await this.fileSystem.mkdir(path.dirname(target), { recursive: true });
-    await this.fileSystem.writeFile(target, bytes, { mode: 0o600 });
+
+    const existing = await readOptionalBytes(this.fileSystem, target);
+    if (existing) {
+      const existingDigest = crypto.createHash('sha256').update(existing).digest('hex');
+      if (existingDigest !== digest) throw new Error(`extension ${id}@${version} already exists with different artifact bytes`);
+    } else {
+      await atomicCreateBytes(this.fileSystem, target, bytes, digest);
+    }
+
     const currentFile = path.join(extensionRoot, 'current');
     const previousFile = path.join(extensionRoot, 'previous');
     const current = await readOptional(this.fileSystem, currentFile);
+    if (current?.trim() === version) return { id, version, sha256: digest, previous: (await readOptional(this.fileSystem, previousFile))?.trim() ?? null, target, unchanged: true };
     if (current) await atomicWrite(this.fileSystem, previousFile, current.trim());
     await atomicWrite(this.fileSystem, currentFile, version);
-    return { id, version, sha256: digest, previous: current?.trim() ?? null, target };
+    return { id, version, sha256: digest, previous: current?.trim() ?? null, target, unchanged: false };
   }
   async rollback(id) {
     validateId(id);
@@ -53,6 +64,7 @@ export class TransactionalExtensionInstaller {
     const currentFile = path.join(extensionRoot, 'current');
     const previousFile = path.join(extensionRoot, 'previous');
     const previous = (await this.fileSystem.readFile(previousFile, 'utf8')).trim();
+    validateVersion(previous);
     const release = path.join(extensionRoot, 'releases', safeSegment(previous), 'extension.pkg');
     await this.fileSystem.access(release);
     const current = (await readOptional(this.fileSystem, currentFile))?.trim() ?? null;
@@ -80,4 +92,58 @@ function validateId(id) { if (!/^[A-Za-z0-9][A-Za-z0-9._-]+$/.test(id ?? '')) th
 function validateVersion(version) { if (!/^[0-9A-Za-z][0-9A-Za-z._+-]*$/.test(version ?? '')) throw new Error('invalid extension version'); }
 function safeSegment(value) { return value.replace(/[^A-Za-z0-9._+-]/g, '_'); }
 async function readOptional(fileSystem, file) { try { return await fileSystem.readFile(file, 'utf8'); } catch (error) { if (error?.code === 'ENOENT') return null; throw error; } }
-async function atomicWrite(fileSystem, file, text) { await fileSystem.mkdir(path.dirname(file), { recursive: true }); const temp = `${file}.${crypto.randomUUID()}.tmp`; await fileSystem.writeFile(temp, text, { mode: 0o600 }); await fileSystem.rename(temp, file); }
+async function readOptionalBytes(fileSystem, file) { try { return await fileSystem.readFile(file); } catch (error) { if (error?.code === 'ENOENT') return null; throw error; } }
+
+async function atomicCreateBytes(fileSystem, target, bytes, expectedDigest) {
+  const temporary = `${target}.${crypto.randomUUID()}.tmp`;
+  try {
+    await durableWrite(fileSystem, temporary, bytes, 0o600);
+    const staged = await fileSystem.readFile(temporary);
+    const stagedDigest = crypto.createHash('sha256').update(staged).digest('hex');
+    if (stagedDigest !== expectedDigest) throw new Error('staged extension artifact checksum mismatch');
+    if (typeof fileSystem.link === 'function') {
+      try { await fileSystem.link(temporary, target); }
+      catch (error) {
+        if (error?.code !== 'EEXIST') throw error;
+        const existing = await fileSystem.readFile(target);
+        const existingDigest = crypto.createHash('sha256').update(existing).digest('hex');
+        if (existingDigest !== expectedDigest) throw new Error('extension version raced with a different artifact');
+      }
+      await fileSystem.rm(temporary, { force: true });
+    } else {
+      const existing = await readOptionalBytes(fileSystem, target);
+      if (existing) {
+        const existingDigest = crypto.createHash('sha256').update(existing).digest('hex');
+        if (existingDigest !== expectedDigest) throw new Error('extension version already exists with different artifact');
+        await fileSystem.rm?.(temporary, { force: true });
+      } else {
+        await fileSystem.rename(temporary, target);
+      }
+    }
+  } catch (error) {
+    try { await fileSystem.rm?.(temporary, { force: true }); } catch {}
+    throw error;
+  }
+}
+
+async function atomicWrite(fileSystem, file, text) {
+  await fileSystem.mkdir(path.dirname(file), { recursive: true });
+  const temp = `${file}.${crypto.randomUUID()}.tmp`;
+  try {
+    await durableWrite(fileSystem, temp, Buffer.from(String(text)), 0o600);
+    await fileSystem.rename(temp, file);
+  } catch (error) {
+    try { await fileSystem.rm?.(temp, { force: true }); } catch {}
+    throw error;
+  }
+}
+
+async function durableWrite(fileSystem, file, bytes, mode) {
+  if (typeof fileSystem.open === 'function') {
+    const handle = await fileSystem.open(file, 'wx', mode);
+    try { await handle.writeFile(bytes); await handle.sync?.(); }
+    finally { await handle.close(); }
+    return;
+  }
+  await fileSystem.writeFile(file, bytes, { mode, flag: 'wx' });
+}
