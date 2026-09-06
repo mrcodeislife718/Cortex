@@ -80,7 +80,17 @@ test('extension packages require trusted publisher signature and support transac
     assert.equal(new MarketplacePolicy().evaluate(verified).allowed, true);
 
     const installer = new TransactionalExtensionInstaller({ root });
-    await installer.install({ id: 'acme.tool', version: '1.0.0', bytes: bytes1, sha256: digest1 });
+    const first = await installer.install({ id: 'acme.tool', version: '1.0.0', bytes: bytes1, sha256: digest1 });
+    assert.equal(first.unchanged, false);
+    const repeated = await installer.install({ id: 'acme.tool', version: '1.0.0', bytes: bytes1, sha256: digest1 });
+    assert.equal(repeated.unchanged, true);
+
+    const collision = Buffer.from('different-v1-bytes');
+    const collisionDigest = crypto.createHash('sha256').update(collision).digest('hex');
+    await assert.rejects(installer.install({ id: 'acme.tool', version: '1.0.0', bytes: collision, sha256: collisionDigest }), /already exists with different artifact bytes/);
+    assert.deepEqual(await fs.readFile(first.target), bytes1);
+    assert.equal(await installer.current('acme.tool'), '1.0.0');
+
     const bytes2 = Buffer.from('extension-v2');
     const digest2 = crypto.createHash('sha256').update(bytes2).digest('hex');
     await installer.install({ id: 'acme.tool', version: '2.0.0', bytes: bytes2, sha256: digest2 });
